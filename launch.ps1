@@ -25,6 +25,11 @@ function Say($msg) {
   Add-Content -Path $log -Value $line -Encoding utf8
 }
 
+# One launch at a time. A double-click on the shortcut used to run two
+# launches side by side, and each opened its own kiosk window.
+$mutex = New-Object System.Threading.Mutex($false, 'Local\LOCAL24Launcher')
+if (-not $mutex.WaitOne(0)) { exit 0 }
+
 Set-Content -Path $log -Value ("=== launch {0} ===" -f (Get-Date)) -Encoding utf8
 Write-Host ""
 Write-Host "  LOCAL 24"
@@ -50,6 +55,32 @@ function Test-BuildStale {
   }
   $newest = ($inputs | Measure-Object -Property LastWriteTimeUtc -Maximum).Maximum
   return ($newest -gt $built)
+}
+
+# The kiosk's own Chrome (the browser process, not its helpers), if it is open.
+function Get-KioskBrowser {
+  Get-CimInstance Win32_Process -Filter "Name='chrome.exe'" -ErrorAction SilentlyContinue |
+    Where-Object { $_.CommandLine -like '*kiosk-profile*' -and $_.CommandLine -notlike '*--type=*' }
+}
+
+# Brings an already-open kiosk window to the front instead of opening another.
+function Show-KioskWindow {
+  if (-not ('L24Win' -as [type])) {
+    Add-Type -Namespace '' -Name 'L24Win' -MemberDefinition @'
+[DllImport("user32.dll")] public static extern bool ShowWindow(System.IntPtr h, int cmd);
+[DllImport("user32.dll")] public static extern bool SetForegroundWindow(System.IntPtr h);
+'@
+  }
+  $shown = $false
+  foreach ($k in Get-KioskBrowser) {
+    $p = Get-Process -Id $k.ProcessId -ErrorAction SilentlyContinue
+    if ($p -and $p.MainWindowHandle -ne 0) {
+      [L24Win]::ShowWindow($p.MainWindowHandle, 9) | Out-Null
+      [L24Win]::SetForegroundWindow($p.MainWindowHandle) | Out-Null
+      $shown = $true
+    }
+  }
+  return $shown
 }
 
 # Stops whatever is serving on the port, and waits until it has let go.
@@ -131,6 +162,12 @@ try {
 
   if ($NoOpen) {
     Say 'Ready (browser not opened: -NoOpen).'
+  } elseif (Get-KioskBrowser) {
+    # Already open. Clicking the shortcut again used to stack a second kiosk
+    # window on the first; now it just brings the existing one forward. (If
+    # the server was rebuilt above, that window reloads itself.)
+    Say 'Already open - bringing it to the front.'
+    Show-KioskWindow | Out-Null
   } elseif ($chrome) {
     Say 'Opening in Chrome (kiosk).'
     # Its own profile, so the kiosk never inherits - or restores - the tabs
@@ -148,9 +185,16 @@ try {
       '--disable-features=InfiniteSessionRestore ' +
       '--autoplay-policy=no-user-gesture-required "{1}"'
     $chromeArgs = $chromeArgs -f $kioskProfile, "$url/?kiosk=1"
-    $proc = Start-Process -FilePath $chrome -PassThru -ArgumentList $chromeArgs
+    Start-Process -FilePath $chrome -ArgumentList $chromeArgs | Out-Null
     # Remembered so the quit button can close this window and nothing else.
-    if ($proc) { Set-Content -Path (Join-Path $root 'data\kiosk.pid') -Value $proc.Id -Encoding ascii }
+    # The process Start-Process returns can be a short-lived launcher that hands
+    # off and exits, so wait for the real browser process and record that one.
+    $deadline = (Get-Date).AddSeconds(8)
+    do {
+      Start-Sleep -Milliseconds 300
+      $browser = Get-KioskBrowser | Select-Object -First 1
+    } while (-not $browser -and (Get-Date) -lt $deadline)
+    if ($browser) { Set-Content -Path (Join-Path $root 'data\kiosk.pid') -Value $browser.ProcessId -Encoding ascii }
   } else {
     Say 'Chrome not found; opening the default browser.'
     Start-Process "$url/?kiosk=1"
