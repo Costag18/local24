@@ -1,0 +1,962 @@
+@import "tailwindcss";
+
+/* ---------------------------------------------------------------------------
+   LOCAL 24 — CP24-derived visual language.
+   Hard rectangles, no rounded corners on structure, dense caps labels, one
+   loud accent. Themes only redefine tokens; no component reads a raw colour.
+--------------------------------------------------------------------------- */
+
+:root {
+  --bg: #04060c;
+  --panel: #0b1019;
+  --panel-2: #111827;
+  /* Two rule weights: `line` separates panels, `rule` separates rows inside
+     one. A single mid-contrast border used for both turned dense lists into
+     static. */
+  --line: #1c2437;
+  --rule: #151c2b;
+  --ink: #eef2f8;
+  --ink-dim: #8d9bb4;
+  --ink-faint: #55627c;
+  --accent: #e8192c;
+  --accent-ink: #ffffff;
+  --cool: #4c8dff;
+  --warn: #f5a524;
+  --ok: #2fbe6a;
+  --dead: #566072;
+
+  --gap: 4px;
+  --pad: 10px;
+  --label: 9.5px;
+  --font-scale: 1;
+
+  color-scheme: dark;
+}
+
+[data-theme="midnight"] {
+  --bg: #01040a;
+  --panel: #070d18;
+  --panel-2: #0d1526;
+  --line: #17233a;
+  --rule: #111a2a;
+  --accent: #38bdf8;
+  --accent-ink: #001018;
+  --cool: #0ea5e9;
+}
+
+[data-theme="amber"] {
+  --bg: #0a0703;
+  --panel: #150e05;
+  --panel-2: #1e1509;
+  --line: #35260f;
+  --rule: #251a0b;
+  --ink: #fdf6e8;
+  --ink-dim: #c2a97e;
+  --ink-faint: #8a7550;
+  --accent: #f59e0b;
+  --accent-ink: #1a1000;
+  --cool: #b45309;
+}
+
+[data-density="compact"] {
+  --gap: 3px;
+  --pad: 7px;
+  --label: 9px;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+  font-size: calc(12.5px * var(--font-scale));
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Kiosk: nothing scrolls, nothing selects. */
+[data-kiosk="1"] {
+  user-select: none;
+}
+
+/* The pointer is only ever wanted while it is being used, kiosk or not. The
+   universal selector is needed because interactive elements set their own
+   cursor, and those declarations would otherwise win. */
+[data-idle="1"],
+[data-idle="1"] * {
+  cursor: none !important;
+}
+
+/* Burn-in protection: a slow sub-pixel drift over several minutes. */
+@keyframes drift {
+  0%, 100% { transform: translate(0, 0); }
+  25% { transform: translate(1px, 1px); }
+  50% { transform: translate(0, 2px); }
+  75% { transform: translate(-1px, 1px); }
+}
+[data-burnin="1"] .shell {
+  animation: drift 480s ease-in-out infinite;
+}
+
+/* Flex rather than grid rows: the breaking banner mounts and unmounts, and a
+   fixed row template would hand it the flexible row when it appears. */
+.shell {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  gap: var(--gap);
+  padding: var(--gap);
+  background: var(--bg);
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  position: relative;
+  overflow: hidden;
+  /* A one-pixel highlight along the top edge. Enough to lift the panel off the
+     page without a border heavy enough to add noise. */
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.035),
+    0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+.label {
+  font-size: calc(var(--label) * var(--font-scale));
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--ink-dim);
+  white-space: nowrap;
+}
+
+.label-accent {
+  color: var(--accent);
+}
+
+/* The panel header — CP24's signature device, dialled back.
+   A short accent tick reads as a marker; a full-height red bar on every panel
+   made them all shout at the same volume. */
+.slab {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px var(--pad) 5px calc(var(--pad) - 4px);
+  background: linear-gradient(180deg, var(--panel-2), color-mix(in srgb, var(--panel-2) 55%, var(--panel)));
+  border-bottom: 1px solid var(--line);
+  flex: 0 0 auto;
+  min-height: 22px;
+}
+
+.slab::before {
+  content: "";
+  width: 3px;
+  height: 11px;
+  border-radius: 1px;
+  background: var(--accent);
+  flex: 0 0 auto;
+}
+
+/* The panel's own name: brighter than the metadata beside it. */
+.slab .label-accent {
+  color: var(--ink);
+  letter-spacing: 0.09em;
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* List rows -----------------------------------------------------------------
+   A dense list separated by full-strength borders reads as static. These use
+   the lighter rule, skip the last divider, and lift slightly on hover. */
+
+.row {
+  border-bottom: 1px solid var(--rule);
+  transition: background 120ms ease;
+}
+
+.row:last-child {
+  border-bottom: 0;
+}
+
+.row-link:hover {
+  background: rgba(255, 255, 255, 0.035);
+}
+
+/* A small caps tag: merchant, route number, source. */
+.tag {
+  font-size: calc(var(--label) * var(--font-scale));
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-weight: 700;
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Prices and counts should read before the words beside them. */
+.figure {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+  font-weight: 700;
+  color: var(--ok);
+}
+
+.scroll-y {
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
+}
+.scroll-y::-webkit-scrollbar { width: 6px; }
+.scroll-y::-webkit-scrollbar-thumb { background: var(--line); }
+
+/* Horizontal strips (hourly forecast) scroll, but a visible bar eats a row of
+   an already short panel. */
+.scroll-x-hidden {
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.scroll-x-hidden::-webkit-scrollbar { display: none; }
+
+/* Ticker crawl -------------------------------------------------------------- */
+
+@keyframes crawl {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+.crawl-track {
+  display: inline-flex;
+  white-space: nowrap;
+  animation: crawl linear infinite;
+  will-change: transform;
+}
+
+.crawl-paused .crawl-track {
+  animation-play-state: paused;
+}
+
+/* Without this, items pop in and out at a hard edge. */
+.crawl-window {
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 28px, #000 calc(100% - 28px), transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 28px, #000 calc(100% - 28px), transparent);
+}
+
+/* Vertical carousel ---------------------------------------------------------
+   Same trick as the ticker: the track holds two copies of the list, so a -50%
+   translate loops with no visible seam. */
+
+.vcrawl {
+  overflow: hidden;
+  position: relative;
+}
+
+/* Horizontal carousel (camera snapshots) ------------------------------------ */
+
+@keyframes hcrawl {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+.hcrawl {
+  overflow: hidden;
+  position: relative;
+}
+
+.hcrawl-track {
+  display: flex;
+  height: 100%;
+  animation: hcrawl linear infinite;
+  will-change: transform;
+}
+
+.hcrawl-paused .hcrawl-track {
+  animation-play-state: paused;
+}
+
+/* Camera band, arranged by its window's shape ------------------------------ */
+
+.cb { container-type: size; }
+
+.cb-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.cb-hero { flex: 1 1 0; min-height: 0; min-width: 0; }
+.cb-strip { flex: 0 0 auto; height: var(--strip, 34%); }
+.cb-copy { display: flex; height: 100%; }
+.cb-thumb { width: 108px; height: 100%; margin-right: 1px; }
+
+@keyframes vstrip {
+  from { transform: translateY(0); }
+  to { transform: translateY(-50%); }
+}
+
+/* Wide: the strip becomes a column beside the picture, crawling upward. */
+@container (aspect-ratio > 2.1) {
+  .cb-body { flex-direction: row; }
+  .cb-strip { height: auto; width: clamp(110px, 22%, 280px); }
+  .cb-strip .hcrawl-track { flex-direction: column; height: auto; animation-name: vstrip; }
+  .cb-copy { flex-direction: column; height: auto; }
+  .cb-thumb { width: 100%; height: auto; aspect-ratio: 16 / 9; margin: 0 0 1px; }
+}
+
+/*
+ * Tall: the picture keeps its own proportions at the top instead of being a
+ * tall crop of a wide image, and the snapshots fill what is left as a
+ * two-column grid crawling upward.
+ */
+@container (aspect-ratio < 0.9) {
+  .cb-hero { flex: 0 0 auto; aspect-ratio: 16 / 9; max-height: 55%; }
+  .cb-strip { flex: 1 1 0; height: auto; min-height: 0; }
+  .cb-strip .hcrawl-track { flex-direction: column; height: auto; animation-name: vstrip; }
+  .cb-copy {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1px;
+    height: auto;
+    padding-bottom: 1px;
+  }
+  .cb-thumb { width: auto; height: auto; aspect-ratio: 16 / 9; margin: 0; }
+}
+
+/* Carousel lists flow into columns in a wide window ------------------------ */
+
+.cp-list {
+  display: grid;
+  grid-template-columns: repeat(var(--cols, 1), minmax(0, 1fr));
+}
+.cp-list[data-cols="2"] > .row:nth-child(2n + 1),
+.cp-list[data-cols="3"] > .row:not(:nth-child(3n)) {
+  border-right: 1px solid var(--rule);
+}
+/* In columns the last row of each column keeps its rule; only a single
+   column's final row drops it. */
+.cp-list:not([data-cols="1"]) > .row:last-child { border-bottom: 1px solid var(--rule); }
+
+/* Breaking banner ----------------------------------------------------------- */
+
+@keyframes pulse-accent {
+  0%, 100% { background: var(--accent); }
+  50% { background: color-mix(in srgb, var(--accent) 72%, black); }
+}
+
+.breaking {
+  animation: pulse-accent 1.6s ease-in-out infinite;
+  color: var(--accent-ink);
+}
+
+/* Live dot ------------------------------------------------------------------ */
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+.live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 22%, transparent);
+  animation: blink 1.8s ease-in-out infinite;
+  flex: 0 0 auto;
+}
+
+/* Panel cross-fade ---------------------------------------------------------- */
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+.fade-in {
+  animation: fade-up 260ms ease-out;
+}
+
+/* Focus that is visible without a permanent outline on a kiosk screen. */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 70%, transparent);
+  outline-offset: 1px;
+}
+
+/* Night mode: drop luminance without changing hue. */
+[data-night="1"] .shell {
+  filter: brightness(0.55) saturate(0.85);
+  transition: filter 1.2s ease;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+/* --- Window editing -------------------------------------------------- */
+
+/* The grip only shows while editing, so a divider reads as draggable
+   without adding a visible seam to the normal view. */
+.pane-divider-grip {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 2px;
+  height: 2px;
+  box-shadow: 0 0 0 1px var(--ink-faint);
+  opacity: 0.5;
+}
+
+.pane-tools {
+  position: absolute;
+  z-index: 7;
+  top: 2px;
+  right: 2px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  /* A narrow window must not push its own toolbar over its neighbour. */
+  max-width: calc(100% - 4px);
+  overflow: hidden;
+  padding: 2px;
+  background: rgba(4, 7, 13, 0.92);
+  border: 1px solid var(--line);
+  border-radius: 2px;
+}
+
+.pane-tool {
+  font: inherit;
+  font-size: 10px;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  padding: 3px 4px;
+  color: var(--ink-dim);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  max-width: 120px;
+}
+.pane-tool:hover:not(:disabled) { color: var(--ink); background: var(--panel-2); }
+.pane-tool:disabled { opacity: 0.35; cursor: not-allowed; }
+select.pane-tool { background: var(--panel-2); color: var(--ink-dim); min-width: 0; flex: 0 1 auto; }
+.pane-tool:not(select) { flex: 0 0 auto; }
+
+.pane-hint {
+  position: absolute;
+  z-index: 7;
+  left: 2px;
+  bottom: 2px;
+  padding: 2px 4px;
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  background: rgba(4, 7, 13, 0.86);
+  border: 1px solid var(--line);
+  border-radius: 2px;
+}
+
+/* While editing, every window is outlined so the arrangement is legible. */
+[data-editing="1"] .panel { outline: 1px dashed rgba(148, 163, 184, 0.35); outline-offset: -1px; }
+
+/* The rotating window's page list, along its bottom edge while editing. */
+.pane-pages {
+  position: absolute;
+  z-index: 7;
+  left: 2px;
+  right: 2px;
+  bottom: 2px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 2px;
+  background: rgba(4, 7, 13, 0.92);
+  border: 1px solid var(--line);
+  border-radius: 2px;
+}
+
+/* The scale stepper reads as one control rather than three buttons. */
+.pane-scale {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+}
+
+/* --- Weather, sized against its own window ----------------------------- */
+
+/*
+ * The panel is a query container on BOTH axes, so every size below tracks
+ * whichever dimension is scarce. Tracking width alone left a short, wide pane
+ * with small text floating in tall rows — the gaps the eye reads as padding.
+ * `min(Xcqw, Ycqh)` grows the type until the height runs out instead.
+ */
+.wx { container-type: size; }
+
+.wx-body {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1.15fr) auto;
+  grid-template-areas:
+    "now   days"
+    "stats stats"
+    "hours hours"
+    "alert alert";
+}
+
+.wx-now {
+  grid-area: now;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: clamp(3px, 1.4cqw, 10px);
+  padding: 1px clamp(4px, 2cqw, 12px);
+}
+.wx-icon { width: clamp(16px, min(8cqw, 26cqh), 92px); height: auto; }
+.wx-temp {
+  font-size: clamp(0.95rem, min(9cqw, 26cqh), 5rem);
+  line-height: 1;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.wx-cond { font-size: clamp(0.42rem, min(2.4cqw, 7cqh), 1.3rem); max-width: 18ch; }
+
+.wx-days {
+  grid-area: days;
+  display: flex;
+  justify-content: flex-end;
+  min-width: 0;
+}
+.wx-day {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-left: 1px solid var(--rule);
+  padding: 0 clamp(1px, 0.8cqw, 6px);
+}
+/* Four columns fit beside the current conditions; the rest wait for room. */
+.wx-day:nth-child(n + 5) { display: none; }
+.wx-dayname { font-size: clamp(0.4rem, min(2.1cqw, 7cqh), 1.15rem); }
+.wx-hi { font-size: clamp(0.55rem, min(3.4cqw, 11cqh), 2.2rem); }
+.wx-lo { font-size: clamp(0.48rem, min(2.6cqw, 8cqh), 1.6rem); }
+.wx-pop { font-size: clamp(0.4rem, min(2.1cqw, 7cqh), 1.15rem); }
+.wx-pop:empty { display: none; }
+
+.wx-stats {
+  grid-area: stats;
+  display: grid;
+  /* Three or four cells (the bins one appears once the schedule loads). */
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  border-top: 1px solid var(--rule);
+  text-align: center;
+}
+.wx-cell {
+  padding: 0 clamp(2px, 1.2cqw, 8px);
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+}
+.wx-cell + .wx-cell { border-left: 1px solid var(--rule); }
+.wx-caption { font-size: clamp(0.4rem, min(2.1cqw, 7cqh), 1.15rem); }
+.wx-value { font-size: clamp(0.52rem, min(3.2cqw, 11cqh), 2rem); line-height: 1.15; }
+
+.wx-hours {
+  grid-area: hours;
+  display: flex;
+  align-items: stretch;
+  border-top: 1px solid var(--rule);
+}
+.wx-hour {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.wx-hour + .wx-hour { border-left: 1px solid var(--rule); }
+.wx-hourtime { font-size: clamp(0.36rem, min(1.9cqw, 7cqh), 1.1rem); }
+.wx-hourtemp { font-size: clamp(0.5rem, min(3cqw, 11cqh), 1.9rem); }
+
+.wx-alert { grid-area: alert; padding: clamp(1px, 0.8cqw, 5px) clamp(4px, 2cqw, 12px); }
+
+/* Past six columns the hourly strip is unreadable in a narrow window. */
+@container (max-width: 320px) {
+  .wx-hour:nth-child(n + 7) { display: none; }
+  .wx-day:nth-child(n + 4) { display: none; }
+}
+
+/*
+ * Tall and slim: one column. The days become rows (name, high, low, rain)
+ * because a column of four narrow day-columns in a slim window would be
+ * unreadable, and the spare height shows two more days. Hours wrap to two
+ * rows of four. Sizes follow the width first, since that is now the scarce
+ * axis.
+ */
+@container (aspect-ratio < 0.85) {
+  .wx-body {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1.25fr) minmax(0, 2fr) minmax(0, 0.8fr) minmax(0, 1.2fr) auto;
+    grid-template-areas: "now" "days" "stats" "hours" "alert";
+  }
+  .wx-now { justify-content: center; padding: 2px 4cqw; gap: 3cqw; }
+  .wx-icon { width: clamp(20px, min(20cqw, 9cqh), 110px); }
+  .wx-temp { font-size: clamp(1rem, min(20cqw, 9cqh), 6rem); }
+  .wx-cond { font-size: clamp(0.45rem, min(5.2cqw, 2.4cqh), 1.3rem); max-width: none; }
+
+  .wx-days { flex-direction: column; border-top: 1px solid var(--rule); }
+  .wx-day {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 3.2em 3.2em 3em;
+    align-items: center;
+    column-gap: 2cqw;
+    border-left: 0;
+    padding: 0 4cqw;
+  }
+  .wx-day + .wx-day { border-top: 1px solid var(--rule); }
+  .wx-day:nth-child(n + 4) { display: grid; }
+  .wx-dayname, .wx-pop { font-size: clamp(0.45rem, min(5cqw, 2.3cqh), 1.2rem); }
+  .wx-hi { font-size: clamp(0.6rem, min(7cqw, 3.2cqh), 2rem); text-align: right; }
+  .wx-lo { font-size: clamp(0.5rem, min(5.6cqw, 2.6cqh), 1.6rem); text-align: right; }
+  .wx-pop { text-align: right; }
+  .wx-pop:empty { display: block; }
+
+  .wx-caption { font-size: clamp(0.4rem, min(4.4cqw, 2cqh), 1.1rem); }
+  .wx-value { font-size: clamp(0.5rem, min(5.6cqw, 2.6cqh), 1.6rem); }
+
+  .wx-hours { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .wx-hour { border-left: 0; }
+  .wx-hour:nth-child(n + 7) { display: flex; }
+  .wx-hour:not(:nth-child(4n + 1)) { border-left: 1px solid var(--rule); }
+  .wx-hour:nth-child(n + 5) { border-top: 1px solid var(--rule); }
+  .wx-hourtime { font-size: clamp(0.4rem, min(4.4cqw, 2cqh), 1.1rem); }
+  .wx-hourtemp { font-size: clamp(0.55rem, min(6.4cqw, 3cqh), 1.8rem); }
+}
+
+/* Very tall: the hours get a column of their own as rows. */
+@container (aspect-ratio < 0.5) {
+  .wx-body { grid-template-rows: minmax(0, 1.1fr) minmax(0, 2fr) minmax(0, 0.7fr) minmax(0, 2fr) auto; }
+  .wx-hours { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .wx-hour {
+    flex-direction: row;
+    justify-content: space-between;
+    padding: 0 4cqw;
+    border-left: 0;
+    border-top: 0;
+  }
+  .wx-hour:not(:nth-child(4n + 1)) { border-left: 0; }
+  .wx-hour:nth-child(n + 5) { border-top: 0; }
+  .wx-hour:nth-child(2n) { border-left: 1px solid var(--rule); }
+  .wx-hour:nth-child(n + 3) { border-top: 1px solid var(--rule); }
+}
+
+/*
+ * A wide, short strip: all four blocks side by side in one band, so nothing is
+ * squeezed into a row a few pixels tall. The stats stack as label/value pairs.
+ */
+@container (aspect-ratio > 3.2) {
+  .wx-body {
+    grid-template-columns: auto minmax(0, 1.3fr) minmax(0, 0.9fr) minmax(0, 1.5fr);
+    grid-template-rows: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "now days stats hours"
+      "alert alert alert alert";
+  }
+  .wx-icon { width: clamp(16px, min(6cqw, 45cqh), 92px); }
+  .wx-temp { font-size: clamp(0.95rem, min(6cqw, 42cqh), 5rem); }
+  .wx-cond { font-size: clamp(0.42rem, min(1.6cqw, 11cqh), 1.3rem); }
+  .wx-dayname, .wx-pop, .wx-caption { font-size: clamp(0.4rem, min(1.4cqw, 11cqh), 1.15rem); }
+  .wx-hi { font-size: clamp(0.55rem, min(2.2cqw, 18cqh), 2.2rem); }
+  /* Eight hours share a quarter of the width here, so they run smaller. */
+  .wx-hourtime { font-size: clamp(0.36rem, min(1.05cqw, 10cqh), 1.1rem); }
+  .wx-hourtemp { font-size: clamp(0.5rem, min(1.5cqw, 15cqh), 1.9rem); }
+  .wx-lo { font-size: clamp(0.48rem, min(1.7cqw, 13cqh), 1.6rem); }
+
+  .wx-stats {
+    grid-template-columns: minmax(0, 1fr);
+    grid-auto-flow: row;
+    border-top: 0;
+    border-left: 1px solid var(--rule);
+  }
+  .wx-cell {
+    flex-direction: row;
+    justify-content: space-between;
+    gap: 0.6em;
+  }
+  .wx-cell + .wx-cell { border-left: 0; border-top: 1px solid var(--rule); }
+  .wx-value { font-size: clamp(0.5rem, min(1.6cqw, 13cqh), 1.6rem); }
+  .wx-hours { border-top: 0; border-left: 1px solid var(--rule); }
+}
+
+/*
+ * Paint containment on every window.
+ *
+ * A dashboard is a dozen independent boxes that never affect each other's
+ * layout, so telling the browser that keeps a marquee, a camera frame or a
+ * bus moving from invalidating anything outside its own pane.
+ */
+/* Scoped to the windows: the top bar is a .panel too, and clipping it would
+   cut off the arrangement dropdown that hangs below it. */
+main .panel {
+  contain: layout paint style;
+}
+
+/* The crawls are the only continuously animated surfaces; promote just those. */
+.crawl-track,
+.hcrawl-track {
+  will-change: transform;
+}
+
+/* --- Quiet chrome ------------------------------------------------------
+   The dashboard is read at a glance from across the room, so a row of panel
+   names is wasted height: the weather pane obviously holds the weather. The
+   names come back while arranging, where they are how you tell one window
+   from another. Live metadata — the place, the frame age, which page of the
+   carousel — stays either way. */
+
+:root:not([data-editing="1"]) main .slab-name { display: none; }
+
+/* A header that was only a name has nothing left to show. */
+:root:not([data-editing="1"]) main .slab-quiet { display: none; }
+
+/* The accent tick marks the start of a panel's title; with the titles gone it
+   is marking nothing. */
+:root:not([data-editing="1"]) main .slab::before { display: none; }
+
+/*
+ * What is left of a header outside edit mode is a line of live metadata, so it
+ * is sized like metadata: a thin strip rather than a title bar. The buttons
+ * inside it shrink to match so the row cannot be propped open from within.
+ */
+:root:not([data-editing="1"]) main .slab {
+  padding: 1px calc(var(--pad) - 1px);
+  min-height: 0;
+  gap: 5px;
+  line-height: 1.15;
+}
+
+:root:not([data-editing="1"]) main .slab .label,
+:root:not([data-editing="1"]) main .slab .tag,
+:root:not([data-editing="1"]) main .slab button,
+:root:not([data-editing="1"]) main .slab a {
+  font-size: 8.5px;
+  letter-spacing: 0.05em;
+  padding-top: 0;
+  padding-bottom: 0;
+  line-height: 1.15;
+}
+
+/* The live dot and the carousel pips scale with the row. */
+:root:not([data-editing="1"]) main .slab .live-dot {
+  width: 5px;
+  height: 5px;
+}
+
+/*
+ * A header left with nothing but spacers is still a 22px bar and a border.
+ * `:empty` does not catch it — the flex spacers are real elements — so the
+ * check is "has no visible child", which `:has()` can express directly.
+ */
+:root:not([data-editing="1"]) main .slab:not(:has(> :not(.slab-name):not(.flex-1))) {
+  display: none;
+}
+
+/* The channel caption: a second of "what am I watching", then out of the way. */
+.channel-flash {
+  position: absolute;
+  z-index: 3;
+  left: 8px;
+  top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: 2px;
+  background: rgba(4, 7, 13, 0.82);
+  backdrop-filter: blur(2px);
+  animation: channel-flash 2.6s ease-out forwards;
+  pointer-events: none;
+}
+
+@keyframes channel-flash {
+  0%, 62% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-3px); }
+}
+
+/* The breaking banner is one line: hold at the start, slide far enough to
+   show the end, hold again, come back. The distance is set per message. */
+@keyframes reveal-tail {
+  0%, 26% { transform: translateX(0); }
+  62%, 80% { transform: translateX(var(--reveal, 0)); }
+  100% { transform: translateX(0); }
+}
+
+/* The gist under a headline: two lines, dimmer, never the main event. */
+.news-summary {
+  font-size: 0.68em;
+  line-height: 1.3;
+  color: var(--ink-dim);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Map buses glide between reported positions -------------------------------
+   Positions arrive every five seconds; a transition just under that carries
+   each marker smoothly to the next instead of teleporting it. */
+.bus { transition: transform 4.6s linear; }
+.bus-heading { transition: transform 1.2s ease-out; }
+@media (prefers-reduced-motion: reduce) {
+  .bus, .bus-heading { transition: none; }
+}
+
+/* A finished kitchen timer pulses: silent, but hard to miss. */
+@keyframes timer-pulse { 50% { opacity: 0.35; } }
+.timer-done { animation: timer-pulse 1s steps(2, jump-none) infinite; }
+@media (prefers-reduced-motion: reduce) { .timer-done { animation: none; } }
+
+/* ---- Reader: links open over the dashboard, with an obvious way back ---- */
+.reader-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(0, 0, 0, 0.72);
+  display: flex;
+  justify-content: center;
+  padding: clamp(0px, 3vh, 32px) clamp(0px, 3vw, 32px);
+}
+.reader {
+  width: min(860px, 100%);
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+.reader:has(iframe) { height: 100%; width: min(1280px, 100%); }
+.reader-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line);
+  flex: 0 0 auto;
+}
+.reader-back {
+  font-weight: 800;
+  font-size: 0.95rem;
+  padding: 6px 14px;
+  border-radius: 3px;
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.reader-body {
+  overflow-y: auto;
+  padding: 18px clamp(16px, 5%, 48px) 40px;
+  min-height: 0;
+}
+.reader-title {
+  font-size: clamp(1.3rem, 2.6vw, 2rem);
+  line-height: 1.2;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  margin-bottom: 8px;
+}
+.reader-image {
+  width: 100%;
+  max-height: 46vh;
+  object-fit: cover;
+  margin-bottom: 18px;
+  border-radius: 2px;
+}
+.reader-p {
+  font-size: 1.05rem;
+  line-height: 1.65;
+  color: var(--ink);
+  margin: 0 0 1em;
+  max-width: 68ch;
+}
+.reader-h {
+  font-size: 1.15rem;
+  font-weight: 800;
+  margin: 1.4em 0 0.5em;
+}
+
+/* Where a shared window is in its turns, centred in the page's own header. */
+.rotator-dots {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  height: 23px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  z-index: 3;
+}
+
+/* ---- Next buses board: type grows with the window, rows share the height ---- */
+.board { container-type: size; }
+.board-rows {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-auto-rows: minmax(0, 1fr);
+}
+.board-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: clamp(6px, 2cqw, 16px);
+  padding: 0 clamp(6px, 2.4cqw, 18px);
+  border-top: 1px solid var(--rule);
+  min-height: 0;
+}
+.board-row:first-child { border-top: 0; }
+.board-route {
+  font-weight: 900;
+  color: #04070d;
+  border-radius: 3px;
+  text-align: center;
+  min-width: 2.4em;
+  padding: 0.1em 0.35em;
+  font-size: clamp(0.8rem, min(4.2cqw, 7cqh), 2rem);
+}
+.board-where { display: flex; flex-direction: column; min-width: 0; }
+.board-dir { font-weight: 700; font-size: clamp(0.7rem, min(2.8cqw, 5cqh), 1.4rem); }
+.board-times { display: flex; align-items: baseline; gap: clamp(6px, 1.8cqw, 14px); }
+.board-time { font-weight: 700; font-size: clamp(0.7rem, min(2.8cqw, 5cqh), 1.4rem); }
+.board-first { font-weight: 900; font-size: clamp(0.9rem, min(5cqw, 9cqh), 2.6rem); }
+.board-unit { font-size: 0.45em; font-weight: 700; color: var(--ink-dim); }

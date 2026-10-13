@@ -1,0 +1,8 @@
+node_modules/
+.next/
+data/
+launcher.log
+*.tsbuildinfo
+.DS_Store
+server.log
+.claude/
