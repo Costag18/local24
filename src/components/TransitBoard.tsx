@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { shortTime } from "@/lib/format";
+import { shortStop, shortTime } from "@/lib/format";
 import { routeColor } from "./TransitMap";
 
 interface Row {
@@ -65,12 +65,12 @@ export function TransitBoard({ routes, paused, now }: { routes: string[]; paused
               <div key={`${r.route}-${r.stop}`} className="board-row">
                 <span className="board-route" style={{ background: color }}>{r.route}</span>
                 <span className="board-where">
-                  <span className="board-dir truncate">
+                  <span className="board-dir wrap2">
                     {r.heading}
                     {r.towards ? <span style={{ color: "var(--ink-dim)" }}> → {r.towards}</span> : null}
                   </span>
-                  <span className="label truncate" style={{ color: "var(--ink-faint)" }}>
-                    {r.stopTitle} · {Math.round(r.km * 1000)} m
+                  <span className="label wrap2" style={{ color: "var(--ink-faint)" }} title={r.stopTitle}>
+                    {shortStop(r.stopTitle)} · {Math.round(r.km * 1000)} m
                   </span>
                 </span>
                 <span className="board-times">

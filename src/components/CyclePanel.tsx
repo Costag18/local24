@@ -222,8 +222,8 @@ function FightsPanel({ cards, now, at }: { cards: FightCard[]; now: number; at: 
         <div style={{ minWidth: 0 }}>
           <div className="flex items-center gap-2">
             <span
-              className="tag px-1.5 py-0.5"
-              style={{ background: "var(--accent)", color: "var(--accent-ink)" }}
+              className="tag px-1.5 py-0.5 shrink-0"
+              style={{ background: "var(--accent)", color: "var(--accent-ink)", overflow: "visible" }}
             >
               {lead.promotion}
             </span>
@@ -232,8 +232,8 @@ function FightsPanel({ cards, now, at }: { cards: FightCard[]; now: number; at: 
             </span>
             {lead.source === "manual" && <span className="label" title="Hand-entered override">MANUAL</span>}
           </div>
-          <div className="font-bold text-sm mt-1 truncate">{lead.name}</div>
-          <div className="label truncate" style={{ marginTop: 2 }}>
+          <div className="font-bold text-sm mt-1 wrap2">{lead.name}</div>
+          <div className="label wrap2" style={{ marginTop: 2 }}>
             {lead.startsAt ? shortTime(lead.startsAt) : "TBA"} · {lead.location || "—"}
           </div>
         </div>
@@ -249,8 +249,8 @@ function FightsPanel({ cards, now, at }: { cards: FightCard[]; now: number; at: 
               style={{ borderTop: i ? "1px solid var(--rule)" : undefined }}
             >
               {f.isMain && <span className="label label-accent">MAIN</span>}
-              <span className="text-xs truncate flex-1">{f.bout}</span>
-              <span className="label truncate" style={{ maxWidth: "14ch" }}>{f.weightClass}</span>
+              <span className="text-xs wrap2 flex-1">{f.bout}</span>
+              <span className="label wrap2 shrink-0" style={{ maxWidth: "16ch", textAlign: "right" }}>{f.weightClass}</span>
             </div>
           ))}
         </div>
@@ -262,7 +262,7 @@ function FightsPanel({ cards, now, at }: { cards: FightCard[]; now: number; at: 
           className="row flex items-center gap-2 px-3 py-2"
         >
           <span className="label" style={{ width: "4ch" }}>{c.promotion}</span>
-          <span className="text-xs truncate flex-1">{c.name}</span>
+          <span className="text-xs wrap2 flex-1">{c.name}</span>
           <span className="label num">{until(c.startsAt, now)}</span>
         </div>
       ))}
@@ -303,7 +303,10 @@ function EventsPanel({ events, now, cols }: { events: LocalEvent[]; now: number;
               style={{
                 background: soon ? "var(--accent)" : "var(--panel-2)",
                 color: soon ? "var(--accent-ink)" : "var(--ink-dim)",
-                width: "6.5ch",
+                // Sized by its words, not a fixed width: "TODAY" and "TMRW"
+                // were cut to "TO…" once the type was scaled up.
+                minWidth: "6.5ch",
+                overflow: "visible",
                 lineHeight: 1.15,
               }}
             >
@@ -314,7 +317,7 @@ function EventsPanel({ events, now, cols }: { events: LocalEvent[]; now: number;
             <span className="flex flex-col gap-0.5" style={{ minWidth: 0 }}>
               <span className="text-xs font-semibold leading-snug">{e.name}</span>
               <span className="flex items-center gap-2 label" style={{ minWidth: 0 }}>
-                <span className="truncate" style={{ color: "var(--ink-dim)" }}>{e.venue}</span>
+                <span className="wrap2" style={{ color: "var(--ink-dim)" }}>{e.venue}</span>
                 {e.distanceKm !== null && <span className="shrink-0">{e.distanceKm} km</span>}
                 {e.free && <span className="shrink-0" style={{ color: "var(--ok)" }}>FREE</span>}
               </span>
@@ -373,13 +376,13 @@ function MarketPanel({
               <span style={{ width: 44, height: 44, borderRadius: 2, flex: "0 0 auto", background: "var(--panel-2)" }} />
             )}
             <span className="flex flex-col gap-0.5" style={{ minWidth: 0, flex: 1 }}>
-              <span className="text-xs font-semibold leading-snug truncate">{l.title}</span>
+              <span className="text-xs font-semibold leading-snug wrap2">{l.title}</span>
               <span className="flex items-center gap-2" style={{ minWidth: 0 }}>
                 <span className="figure font-bold text-xs shrink-0" style={{ color: l.price === "Free" ? "var(--ok)" : "var(--ink)" }}>
                   {l.price || "—"}
                 </span>
                 <span className="tag shrink-0" style={{ color: tag.color }}>{tag.text}</span>
-                <span className="label truncate" style={{ color: "var(--ink-dim)" }}>{l.place}</span>
+                <span className="label wrap2" style={{ color: "var(--ink-dim)" }}>{l.place}</span>
               </span>
             </span>
             <span className="flex flex-col items-end gap-0.5 shrink-0">

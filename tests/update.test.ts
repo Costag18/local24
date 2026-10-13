@@ -215,3 +215,11 @@ describe("next buses board branches", () => {
     expect(out[0].towards).toBe("Woodbine Station");
   });
 });
+
+describe("short stop names", () => {
+  it("cuts a TTC stop name to what identifies it", async () => {
+    const { shortStop } = await import("../src/lib/format");
+    expect(shortStop("O'Connor Dr At Glenwood Cres West Side")).toBe("O'Connor @ Glenwood W side");
+    expect(shortStop("St Clair Ave East At Denvale Rd")).toBe("St Clair E @ Denvale");
+  });
+});

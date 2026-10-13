@@ -257,3 +257,19 @@ export function webLink(raw: string | null | undefined): string {
   if (/^[a-z0-9-]+(\.[a-z0-9-]+)+(\/|$)/i.test(s)) return `https://${s}`;
   return "";
 }
+
+/**
+ * A TTC stop name cut to what identifies it: "O'Connor Dr At Glenwood Cres
+ * West Side" becomes "O'Connor @ Glenwood W side". The full name stays in
+ * the tooltip.
+ */
+export function shortStop(title: string): string {
+  const side = /\s+(North|South|East|West)\s+Side$/i.exec(title);
+  const base = side ? title.slice(0, side.index) : title;
+  const short = shortCamLabel(base.replace(/\s+At\s+/i, " @ "))
+    .replace(/\bEast\b/g, "E")
+    .replace(/\bWest\b/g, "W")
+    .replace(/\bNorth\b/g, "N")
+    .replace(/\bSouth\b/g, "S");
+  return side ? `${short} ${side[1][0].toUpperCase()} side` : short;
+}

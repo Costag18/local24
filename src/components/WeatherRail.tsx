@@ -56,7 +56,7 @@ export function WeatherRail({ weather, at, now, pickup }: Props) {
             )}
             <div style={{ minWidth: 0 }}>
               <div className="num wx-temp">{temp(weather.tempC)}</div>
-              <div className="label wx-cond truncate">{weather.condition || "—"}</div>
+              <div className="label wx-cond wrap2">{weather.condition || "—"}</div>
               <div className="label wx-cond truncate" style={{ color: "var(--ink-faint)" }}>
                 {weather.windDir ?? ""} {weather.windKph ?? "--"}km/h · {weather.humidity ?? "--"}%
               </div>
@@ -128,7 +128,7 @@ export function WeatherRail({ weather, at, now, pickup }: Props) {
                   {pickupDay(pickup.date, now).slice(0, 3)}
                 </div>
                 {/* Which week it is is the whole question: garbage or recycling. */}
-                <div className="label wx-caption truncate" style={{ color: "var(--ink-faint)", maxWidth: "100%" }}>
+                <div className="label wx-caption wx-wrap" style={{ color: "var(--ink-faint)" }}>
                   {pickup.items.filter((i) => i !== "Green Bin").join(" · ") || "Green Bin"}
                 </div>
               </div>
@@ -149,7 +149,7 @@ export function WeatherRail({ weather, at, now, pickup }: Props) {
           {weather.warnings.length > 0 && (
             <div className="wx-alert" style={{ background: "var(--accent)", color: "var(--accent-ink)" }}>
               <div className="label wx-caption" style={{ color: "inherit" }}>Alert</div>
-              <div className="wx-value font-bold truncate">{weather.warnings[0].title}</div>
+              <div className="wx-value font-bold wrap2">{weather.warnings[0].title}</div>
             </div>
           )}
         </div>

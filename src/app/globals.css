@@ -960,3 +960,23 @@ main .panel {
 .board-time { font-weight: 700; font-size: clamp(0.7rem, min(2.8cqw, 5cqh), 1.4rem); }
 .board-first { font-weight: 900; font-size: clamp(0.9rem, min(5cqw, 9cqh), 2.6rem); }
 .board-unit { font-size: 0.45em; font-weight: 700; color: var(--ink-dim); }
+
+/* Short text that must be read whole: wrap onto a second line rather than
+   end in "…". Two lines at most, so a box never grows unbounded. */
+.wx-wrap, .cam-caption, .wrap2 {
+  white-space: normal;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow-wrap: break-word;
+  max-width: 100%;
+}
+.wrap2 { line-height: 1.15; }
+.wx-wrap { text-align: center; line-height: 1.15; letter-spacing: 0.03em; }
+
+/* In a slim camera window the stream name needs the room more than the dots;
+   the "1/3" counter beside them still says where the rotation is. */
+@container (max-width: 300px) {
+  .cb-dots { display: none; }
+}

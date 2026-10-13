@@ -195,7 +195,7 @@ export const DEFAULT_CONFIG: AppConfig = {
         id: "games",
         label: "Games",
         queries: ["video games", "nintendo", "playstation", "xbox"],
-        match: String.raw`game|ps[1-5]|playstation|xbox|nintendo|switch|wii|gamecube|n64|snes|nes|sega|game ?boy|3?ds|controller|console|zelda|mario|pok[eé]mon|steam deck`,
+        match: String.raw`game|ps[1-5]|playstation|xbox|nintendo|switch|wii|gamecube|n64|snes|\bnes\b|sega|game ?boy|\b3?ds\b|controller|console|zelda|mario|pok[eé]mon|steam deck`,
         exclude: String.raw`board game|gaming (chair|desk|pc)|card game`,
       },
       {
@@ -209,7 +209,7 @@ export const DEFAULT_CONFIG: AppConfig = {
         id: "filament",
         label: "Filament",
         queries: ["3d filament", "pla filament"],
-        match: String.raw`filament|pla|petg|abs|tpu|spool`,
+        match: String.raw`filament|\bpla\b|petg|\babs\b|\btpu\b|spool`,
         exclude: String.raw`3d[- ]?printed|light bulb|lamp`,
       },
     ],

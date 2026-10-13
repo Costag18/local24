@@ -132,9 +132,9 @@ export function CameraBand({
         {hasVideo ? (
           <>
             <span className="live-dot" />
-            <span className="label truncate flex-1">{video?.label ?? ""}</span>
+            <span className="label wrap2 flex-1" style={{ minWidth: 0 }}>{video?.label ?? ""}</span>
             {usableVideo.length > 1 && (
-              <div className="flex gap-1 shrink-0">
+              <div className="flex gap-1 shrink-0 cb-dots">
                 {usableVideo.map((v, i) => (
                   <button
                     key={v.id}
@@ -158,7 +158,7 @@ export function CameraBand({
           </>
         ) : (
           <>
-            <span className="label truncate flex-1">{hero?.label ?? ""}</span>
+            <span className="label wrap2 flex-1" style={{ minWidth: 0 }}>{hero?.label ?? ""}</span>
             <span className="label num" style={{ color: "var(--ink-faint)" }}>
               {heroIndex + 1}/{live.length}
             </span>
@@ -271,7 +271,7 @@ export function CameraBand({
                         </span>
                       )}
                       <span
-                        className="absolute left-0 right-0 bottom-0 truncate px-1 py-0.5 text-left"
+                        className="absolute left-0 right-0 bottom-0 px-1 py-0.5 text-left cam-caption"
                         style={{
                           background: "rgba(0,0,0,0.72)",
                           color: "#fff",
