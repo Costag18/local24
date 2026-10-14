@@ -4,17 +4,21 @@
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 $launcher = Join-Path $root 'LOCAL 24.cmd'
+$serverLauncher = Join-Path $root 'LOCAL 24 Server.cmd'
 $icoPath = Join-Path $root 'local24.ico'
+$serverIcoPath = Join-Path $root 'local24-server.ico'
 
 if (-not (Test-Path $launcher)) { throw "Launcher not found at $launcher" }
+if (-not (Test-Path $serverLauncher)) { throw "Launcher not found at $serverLauncher" }
 
 Add-Type -AssemblyName System.Drawing
 
 # --- the artwork ------------------------------------------------------------
 # The dashboard's wordmark: white LOCAL 24 on a red band over a dark rounded
 # square. Drawn fresh at each size rather than scaled, so the small ones stay
-# legible instead of turning to mush.
-function New-Local24Bitmap([int]$size) {
+# legible instead of turning to mush. The server-only shortcut gets the same
+# mark on a blue band reading SERVER, so the two are told apart at a glance.
+function New-Local24Bitmap([int]$size, [int[]]$band = @(225, 29, 46), [string]$word = 'LOCAL') {
   $bmp = New-Object System.Drawing.Bitmap($size, $size, [System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
   $g = [System.Drawing.Graphics]::FromImage($bmp)
   $g.SmoothingMode = 'AntiAlias'
@@ -33,7 +37,7 @@ function New-Local24Bitmap([int]$size) {
   $g.FillPath($dark, $path)
   $g.SetClip($path)
 
-  $red = New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::FromArgb(255, 225, 29, 46))
+  $red = New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::FromArgb(255, $band[0], $band[1], $band[2]))
   $white = New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::White)
   $fmt = New-Object System.Drawing.StringFormat
   $fmt.Alignment = 'Center'
@@ -48,9 +52,10 @@ function New-Local24Bitmap([int]$size) {
   } else {
     $bandH = [int]($size * 0.375)
     $g.FillRectangle($red, 0, 0, $size, $bandH)
-    $fLocal = New-Object System.Drawing.Font('Segoe UI', [float]($size * 0.165), [System.Drawing.FontStyle]::Bold, [System.Drawing.GraphicsUnit]::Pixel)
+    $wordSize = if ($word.Length -gt 5) { 0.14 } else { 0.165 }
+    $fLocal = New-Object System.Drawing.Font('Segoe UI', [float]($size * $wordSize), [System.Drawing.FontStyle]::Bold, [System.Drawing.GraphicsUnit]::Pixel)
     $fNum = New-Object System.Drawing.Font('Segoe UI', [float]($size * 0.44), [System.Drawing.FontStyle]::Bold, [System.Drawing.GraphicsUnit]::Pixel)
-    $g.DrawString('LOCAL', $fLocal, $white, (New-Object System.Drawing.RectangleF(0, 0, $size, $bandH)), $fmt)
+    $g.DrawString($word, $fLocal, $white, (New-Object System.Drawing.RectangleF(0, 0, $size, $bandH)), $fmt)
     # The parentheses matter: a comma binds tighter than a minus here, so an
     # unwrapped `$size - $bandH` would try to subtract from the argument array.
     $g.DrawString('24', $fNum, $white, (New-Object System.Drawing.RectangleF(0, $bandH, $size, ($size - $bandH))), $fmt)
@@ -99,46 +104,54 @@ function New-IcoEntry([System.Drawing.Bitmap]$bmp) {
   return ,$bytes
 }
 
-$sizes = 16, 20, 24, 32, 40, 48, 64, 128, 256
-$images = @()
-foreach ($s in $sizes) {
-  $bmp = New-Local24Bitmap $s
-  $images += , @{ size = $s; bytes = (New-IcoEntry $bmp) }
-  $bmp.Dispose()
+function Write-Icon([string]$path, [int[]]$band, [string]$word) {
+  $sizes = 16, 20, 24, 32, 40, 48, 64, 128, 256
+  $images = @()
+  foreach ($s in $sizes) {
+    $bmp = New-Local24Bitmap $s $band $word
+    $images += , @{ size = $s; bytes = (New-IcoEntry $bmp) }
+    $bmp.Dispose()
+  }
+
+  $ico = New-Object System.IO.MemoryStream
+  $w = New-Object System.IO.BinaryWriter($ico)
+  $w.Write([UInt16]0); $w.Write([UInt16]1); $w.Write([UInt16]$images.Count)
+
+  # Entries first, then the payloads they point at.
+  $offset = 6 + (16 * $images.Count)
+  foreach ($img in $images) {
+    $dim = if ($img.size -ge 256) { 0 } else { $img.size }   # 0 means 256
+    $w.Write([Byte]$dim); $w.Write([Byte]$dim)
+    $w.Write([Byte]0); $w.Write([Byte]0)
+    $w.Write([UInt16]1); $w.Write([UInt16]32)
+    $w.Write([UInt32]$img.bytes.Length); $w.Write([UInt32]$offset)
+    $offset += $img.bytes.Length
+  }
+  foreach ($img in $images) { $w.Write([byte[]]$img.bytes) }
+  $w.Flush()
+  [System.IO.File]::WriteAllBytes($path, $ico.ToArray())
+  $w.Dispose(); $ico.Dispose()
+  Write-Host ("  icon      {0} ({1} sizes, {2:n0} bytes)" -f $path, $images.Count, (Get-Item $path).Length)
 }
 
-$ico = New-Object System.IO.MemoryStream
-$w = New-Object System.IO.BinaryWriter($ico)
-$w.Write([UInt16]0); $w.Write([UInt16]1); $w.Write([UInt16]$images.Count)
+Write-Icon $icoPath @(225, 29, 46) 'LOCAL'
+Write-Icon $serverIcoPath @(37, 99, 235) 'SERVER'
 
-# Entries first, then the payloads they point at.
-$offset = 6 + (16 * $images.Count)
-foreach ($img in $images) {
-  $dim = if ($img.size -ge 256) { 0 } else { $img.size }   # 0 means 256
-  $w.Write([Byte]$dim); $w.Write([Byte]$dim)
-  $w.Write([Byte]0); $w.Write([Byte]0)
-  $w.Write([UInt16]1); $w.Write([UInt16]32)
-  $w.Write([UInt32]$img.bytes.Length); $w.Write([UInt32]$offset)
-  $offset += $img.bytes.Length
-}
-foreach ($img in $images) { $w.Write([byte[]]$img.bytes) }
-$w.Flush()
-[System.IO.File]::WriteAllBytes($icoPath, $ico.ToArray())
-$w.Dispose(); $ico.Dispose()
-Write-Host ("  icon      {0} ({1} sizes, {2:n0} bytes)" -f $icoPath, $images.Count, (Get-Item $icoPath).Length)
-
-# --- the shortcut -----------------------------------------------------------
+# --- the shortcuts ----------------------------------------------------------
 $desktop = [Environment]::GetFolderPath('Desktop')
-$lnkPath = Join-Path $desktop 'LOCAL 24.lnk'
-
 $shell = New-Object -ComObject WScript.Shell
-$lnk = $shell.CreateShortcut($lnkPath)
-$lnk.TargetPath = $launcher
-$lnk.WorkingDirectory = $root
-$lnk.IconLocation = "$icoPath,0"
-$lnk.Description = 'Start LOCAL 24 and open it fullscreen'
-$lnk.WindowStyle = 1
-$lnk.Save()
 
-Write-Host "  shortcut  $lnkPath"
-Write-Host "  target    $launcher"
+function Write-Shortcut([string]$name, [string]$target, [string]$icon, [string]$about) {
+  $lnkPath = Join-Path $desktop "$name.lnk"
+  $lnk = $shell.CreateShortcut($lnkPath)
+  $lnk.TargetPath = $target
+  $lnk.WorkingDirectory = $root
+  $lnk.IconLocation = "$icon,0"
+  $lnk.Description = $about
+  $lnk.WindowStyle = 1
+  $lnk.Save()
+  Write-Host "  shortcut  $lnkPath"
+}
+
+Write-Shortcut 'LOCAL 24' $launcher $icoPath 'Start LOCAL 24 and open it fullscreen'
+Write-Shortcut 'LOCAL 24 Server' $serverLauncher $serverIcoPath 'Start the LOCAL 24 server only, for watching on another screen'

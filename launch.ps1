@@ -6,8 +6,13 @@
 param(
   # Starts everything but leaves the browser alone. Used for checking a launch
   # without a kiosk window taking over the screen.
-  [switch]$NoOpen
+  [switch]$NoOpen,
+  # Server only: start it, show the address for other screens, open no window
+  # here. For when this computer is just the server and the display is a TV,
+  # tablet or another laptop.
+  [switch]$ServerOnly
 )
+if ($ServerOnly) { $NoOpen = $true }
 
 $ErrorActionPreference = 'Continue'
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -160,7 +165,9 @@ try {
     "$env:LOCALAPPDATA\Google\Chrome\Application\chrome.exe"
   ) | Where-Object { Test-Path $_ } | Select-Object -First 1
 
-  if ($NoOpen) {
+  if ($ServerOnly) {
+    Say 'Server only - no display opened on this computer.'
+  } elseif ($NoOpen) {
     Say 'Ready (browser not opened: -NoOpen).'
   } elseif (Get-KioskBrowser) {
     # Already open. Clicking the shortcut again used to stack a second kiosk
@@ -219,6 +226,21 @@ try {
     }
   }
   Write-Host ""
+
+  if ($ServerOnly) {
+    # The server runs hidden and keeps going after this window closes. Saying
+    # so matters: otherwise closing the window looks like it should stop it.
+    Write-Host "  The server keeps running when you close this window."
+    Write-Host "  Type stop and press Enter to shut it down instead."
+    Write-Host ""
+    $answer = Read-Host '  '
+    if ($answer -match '^\s*stop\s*$') {
+      Say 'Stopping the server...'
+      Stop-Server
+      Say 'Stopped.'
+      Start-Sleep -Seconds 1
+    }
+  }
 } catch {
   Say "FAILED: $($_.Exception.Message)"
   Write-Host ""
