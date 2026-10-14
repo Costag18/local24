@@ -138,6 +138,7 @@ export function TopBar({
  */
 function QuitButton() {
   const [armed, setArmed] = useState(false);
+  const [stuck, setStuck] = useState(false);
 
   if (!armed) {
     return (
@@ -164,12 +165,15 @@ function QuitButton() {
           void fetch("/api/quit", { method: "POST" }).catch(() => undefined);
           // The server is going away, so there will be no response to render.
           setTimeout(() => window.close(), 600);
+          // Still here: the server was already gone (so nothing closed the
+          // browser) and Chrome will not let the page close itself. Say how.
+          setTimeout(() => setStuck(true), 2500);
         }}
         className="tag px-1.5 py-0.5"
         title="Close the kiosk and stop the server"
         style={{ background: "var(--accent)", color: "var(--accent-ink)", borderRadius: 2 }}
       >
-        ⏻ QUIT
+        {stuck ? "⏻ PRESS ALT+F4" : "⏻ QUIT"}
       </button>
       <button
         onClick={() => setArmed(false)}

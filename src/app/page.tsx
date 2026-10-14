@@ -96,6 +96,33 @@ export default function Page() {
   // The grid is measured rather than fractional, so the video area lands on a
   // true 16:9 and the other three panels take up every remaining pixel.
 
+  /**
+   * One kiosk window, ever.
+   *
+   * However a second one appears — a second launch, Chrome restoring a past
+   * session — it used to sit on top of the first, and quitting from it left
+   * the other behind with its server gone. Kiosk windows share a browser, so
+   * they can hear each other: a new window says hello, any older one answers,
+   * and the new one closes itself, leaving the one already running.
+   */
+  const [duplicate, setDuplicate] = useState(false);
+  useEffect(() => {
+    if (!kiosk || typeof BroadcastChannel === "undefined") return;
+    const channel = new BroadcastChannel("local24-kiosk");
+    const born = performance.timeOrigin + Math.random();
+    channel.onmessage = (e: MessageEvent<{ type: string; born: number }>) => {
+      const m = e.data;
+      if (m.type === "hello" && m.born > born) channel.postMessage({ type: "older", born: m.born });
+      if (m.type === "older" && m.born === born) {
+        window.close();
+        // A window the browser will not let a script close says so instead.
+        setTimeout(() => setDuplicate(true), 400);
+      }
+    };
+    channel.postMessage({ type: "hello", born });
+    return () => channel.close();
+  }, [kiosk]);
+
   // Kiosk can also be entered by URL, for a dedicated screen.
   useEffect(() => {
     if (new URLSearchParams(window.location.search).get("kiosk") === "1") setKiosk(true);
@@ -423,6 +450,20 @@ export default function Page() {
     ],
     [refresh, kiosk, setKiosk, night, setNightOverride, cfg, setPlaylistId, startTimer, timer, setTimer],
   );
+
+  if (duplicate) {
+    return (
+      <div className="grid place-items-center h-screen">
+        <div className="text-center">
+          <div className="font-black" style={{ fontSize: "2em", letterSpacing: "-0.02em" }}>
+            LOCAL<span style={{ color: "var(--accent)" }}>24</span>
+          </div>
+          <div className="label" style={{ marginTop: 8 }}>Already open in another window.</div>
+          <div className="label" style={{ marginTop: 4, color: "var(--ink-faint)" }}>Press Alt+F4 to close this one.</div>
+        </div>
+      </div>
+    );
+  }
 
   if (!state || !cfg || !sectionCtx) {
     return (
