@@ -58,6 +58,8 @@ export interface Weather {
   sunrise: number | null;
   sunset: number | null;
   aqi: number | null;
+  /** UV index right now; only worth showing in daylight when it is 3 or more. */
+  uv?: number | null;
   /** Next 15-minute precipitation buckets, for the "rain in X min" nowcast. */
   nowcast: { at: number; mm: number }[];
   hourly: { at: number; tempC: number; condition: string; pop: number | null }[];

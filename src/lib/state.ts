@@ -5,6 +5,8 @@ import { freshenCards } from "./sources/fights";
 import { upcomingEvents } from "./sources/events";
 import { getPickups } from "./sources/pickup";
 import { getListings } from "./sources/market";
+import { getFx, getHolidays, type Fx, type Holiday } from "./sources/extras";
+import { localDate } from "./sources/pickup";
 import { loadConfig, publicConfig } from "./config";
 import { jobStatus } from "./poller";
 import { getLiveCamStatus, type CamStatus } from "./sources/livecams";
@@ -35,6 +37,10 @@ export interface AppState {
   pickup: { calendar: string; next: Pickup[] };
   /** Newest local listings across the marketplaces, newest first. */
   market: Listing[];
+  /** Today's and the next Ontario holidays. */
+  holidays: Holiday[];
+  /** US dollar in Canadian dollars, daily. */
+  fx: Fx | null;
   /** Diagnostics, only built for the health page — see `buildState`. */
   health: SourceHealth[];
   jobs: ReturnType<typeof jobStatus>;
@@ -85,6 +91,8 @@ export function buildState(diagnostics = false): AppState {
     camStatus: getLiveCamStatus(),
     pickup: getPickups(),
     market: getListings(),
+    holidays: getHolidays(localDate(Date.now())),
+    fx: getFx(),
     // 9KB of per-source history that only the health page reads. It rode along
     // in every dashboard payload, ten seconds apart, for nothing.
     health: diagnostics ? listHealth() : [],

@@ -11,6 +11,8 @@ interface Props {
   custom: string[];
   mix: { headlines: number; traffic: number; custom: number };
   speed: number;
+  /** Short facts (exchange rate, a coming holiday) mixed in with the custom lines. */
+  facts?: { tag: string; text: string }[];
 }
 
 export interface TickerEntry {
@@ -31,6 +33,7 @@ export function composeTicker(
   custom: string[],
   mix: { headlines: number; traffic: number; custom: number },
   total = 40,
+  facts: { tag: string; text: string }[] = [],
 ): TickerEntry[] {
   const sum = Math.max(1e-6, mix.headlines + mix.traffic + mix.custom);
   const want = {
@@ -52,12 +55,17 @@ export function composeTicker(
       text: `${e.roadway} ${e.direction} — ${e.description}`.trim(),
       tone: "traffic",
     })),
-    custom: custom.slice(0, Math.max(want.custom, custom.length ? 1 : 0)).map((c, i) => ({
-      key: `c-${i}`,
-      tag: "LOCAL 24",
-      text: c,
-      tone: "custom",
-    })),
+    custom: [
+      // Facts always ride along: they are a line each, and the reason the
+      // custom stream exists is information that is not a headline.
+      ...facts.map((f, i) => ({ key: `f-${i}`, tag: f.tag, text: f.text, tone: "custom" as const })),
+      ...custom.slice(0, Math.max(want.custom, custom.length ? 1 : 0)).map((c, i) => ({
+        key: `c-${i}`,
+        tag: "LOCAL 24",
+        text: c,
+        tone: "custom" as const,
+      })),
+    ],
   };
 
   // Round-robin weighted by how many of each remain.
@@ -78,14 +86,14 @@ export function composeTicker(
   return out;
 }
 
-export function Ticker({ tech, local, crime, traffic, custom, mix, speed }: Props) {
+export function Ticker({ tech, local, crime, traffic, custom, mix, speed, facts = [] }: Props) {
   // The crawl is ambient, so it keeps moving while you work elsewhere on the
   // screen; it only holds still when the pointer is actually over it, which is
   // the moment you are trying to read something.
   const [hover, setHover] = useState(false);
   const entries = useMemo(
-    () => composeTicker([...tech, ...crime, ...local], traffic, custom, mix),
-    [tech, local, crime, traffic, custom, mix],
+    () => composeTicker([...tech, ...crime, ...local], traffic, custom, mix, 40, facts),
+    [tech, local, crime, traffic, custom, mix, facts],
   );
 
   // One "lap" must be wider than the screen or the -50% translate reveals a

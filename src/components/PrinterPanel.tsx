@@ -117,7 +117,7 @@ export function PrinterPanel({ label }: { label: string }) {
             {active && pct !== null && (
               <span className="figure font-bold" style={{ color: "#fff", fontSize: "1.25em" }}>{pct}%</span>
             )}
-            <span className="text-xs truncate flex-1" style={{ color: "rgba(255,255,255,0.75)" }}>{s.file}</span>
+            <span className="text-xs wrap2 flex-1" style={{ color: "rgba(255,255,255,0.75)", minWidth: 0 }}>{s.file}</span>
             {active && (
               <span className="label num" style={{ color: "#fff" }}>{duration(s.remainingMin)} left</span>
             )}

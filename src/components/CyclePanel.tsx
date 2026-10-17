@@ -7,6 +7,7 @@ import { listColumns } from "@/lib/shape";
 import { AutoScroll } from "./AutoScroll";
 import { PrinterPanel } from "./PrinterPanel";
 import { RadarPanel } from "./RadarPanel";
+import { PageDots } from "./PageDots";
 import { highlightPlaces } from "@/lib/places";
 import type { FightCard, Item, Listing, LocalEvent, PanelId, TrafficEvent } from "@/lib/types";
 
@@ -131,24 +132,18 @@ export function CyclePanel(props: Props) {
     >
       <div className="slab">
         <span className="label label-accent slab-name">{TITLES[current]}</span>
+        {current === "market" && <NewCount listings={props.market} now={now} />}
         {pinFights && <span className="label" style={{ color: "var(--accent)" }}>TODAY</span>}
         <span className="flex-1" />
-        <div className="flex gap-1">
-          {list.map((p, i) => (
-            <button
-              key={p}
-              onClick={() => setIndex(i)}
-              title={TITLES[p]}
-              style={{
-                width: i === index ? 14 : 7,
-                height: 3,
-                borderRadius: 2,
-                background: i === index ? "var(--accent)" : "var(--line)",
-                transition: "width 200ms ease, background 200ms ease",
-              }}
-            />
-          ))}
-        </div>
+        {list.length > 1 && (
+          <PageDots
+            titles={list.map((p) => TITLES[p])}
+            index={index}
+            onPick={setIndex}
+            dwellMs={dwellMs}
+            paused={Boolean(locked || pinFights || reading)}
+          />
+        )}
       </div>
 
       {/* The panel is short by design, so anything longer than it scrolls by
@@ -250,7 +245,10 @@ function FightsPanel({ cards, now, at }: { cards: FightCard[]; now: number; at: 
             >
               {f.isMain && <span className="label label-accent">MAIN</span>}
               <span className="text-xs wrap2 flex-1">{f.bout}</span>
-              <span className="label wrap2 shrink-0" style={{ maxWidth: "16ch", textAlign: "right" }}>{f.weightClass}</span>
+              <span className="label wrap2 shrink-0" style={{ maxWidth: "16ch", textAlign: "right" }}>
+                {/* "Welterweight Bout" says nothing "Welterweight" does not. */}
+                {f.weightClass.replace(/\s+bout$/i, "")}
+              </span>
             </div>
           ))}
         </div>
@@ -327,6 +325,13 @@ function EventsPanel({ events, now, cols }: { events: LocalEvent[]; now: number;
       })}
     </List>
   );
+}
+
+/** How many listings arrived in the last two hours, beside the page title. */
+function NewCount({ listings, now }: { listings: Listing[]; now: number }) {
+  const n = listings.filter((l) => now - (l.postedAt ?? l.firstSeen) < 2 * 60 * 60 * 1000).length;
+  if (!n) return null;
+  return <span className="label" style={{ color: "var(--ink)" }}>{n} new</span>;
 }
 
 const SOURCE_TAG: Record<Listing["source"], { text: string; color: string }> = {

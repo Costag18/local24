@@ -103,7 +103,22 @@ function SectionInner({
           dwellMs={cfg.panelDwellMs}
           pages={[
             { key: "map", title: "Live map", node: <TransitMap now={now} paused={!visible} />, dwellMs: cfg.panelDwellMs * 1.5, keep: true },
-            { key: "board", title: "Next buses", node: <TransitBoard routes={cfg.map.routes} paused={!visible} now={now} /> },
+            {
+              key: "board",
+              title: "Next buses",
+              node: (
+                <TransitBoard
+                  routes={cfg.map.routes}
+                  paused={!visible}
+                  now={now}
+                  alerts={state.transit.map((t) => ({
+                    route: String(t.meta?.route ?? ""),
+                    title: t.title,
+                    planned: t.meta?.planned === true,
+                  }))}
+                />
+              ),
+            },
           ]}
         />
       );

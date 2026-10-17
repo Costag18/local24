@@ -223,3 +223,54 @@ describe("short stop names", () => {
     expect(shortStop("St Clair Ave East At Denvale Rd")).toBe("St Clair E @ Denvale");
   });
 });
+
+describe("holidays and exchange rate", () => {
+  it("keeps national holidays and Ontario's own, once per date", async () => {
+    const { ontarioHolidays } = await import("../src/lib/sources/extras");
+    const out = ontarioHolidays([
+      { date: "2026-12-26", name: "St. Stephen's Day", global: false, counties: ["CA-AB", "CA-ON"] },
+      { date: "2026-11-11", name: "Remembrance Day", global: false, counties: ["CA-AB", "CA-BC"] },
+      { date: "2026-12-25", name: "Christmas Day", global: true, counties: null },
+      { date: "2026-12-25", name: "Christmas Day (dup)", global: true },
+    ]);
+    expect(out).toEqual([
+      { date: "2026-12-25", name: "Christmas Day" },
+      { date: "2026-12-26", name: "St. Stephen's Day" },
+    ]);
+  });
+
+  it("reads the newest USD/CAD rate and the one before it", async () => {
+    const { parseFx } = await import("../src/lib/sources/extras");
+    const fx = parseFx({ observations: [{ d: "2026-10-15", FXUSDCAD: { v: "1.4196" } }, { d: "2026-10-16", FXUSDCAD: { v: "1.4154" } }] });
+    expect(fx).toEqual({ rate: 1.4154, prev: 1.4196, date: "2026-10-16" });
+    expect(parseFx({ observations: [] })).toBeNull();
+  });
+
+  it("words them for the ticker", async () => {
+    const { fxLine, holidayLine } = await import("../src/lib/format");
+    expect(fxLine({ rate: 1.4154, prev: 1.4196 })).toBe("US$1 = C$1.4154 ▼0.30%");
+    expect(fxLine({ rate: 1.4, prev: null })).toBe("US$1 = C$1.4000");
+    const now = new Date(2026, 11, 16, 9).getTime();
+    expect(holidayLine({ date: "2026-12-25", name: "Christmas Day" }, now)).toBe("Christmas Day · Fri, Dec 25 · in 9 days".replace("Fri, Dec 25", new Date(2026, 11, 25).toLocaleDateString("en-CA", { weekday: "short", month: "short", day: "numeric" })));
+    expect(holidayLine({ date: "2027-02-15", name: "Family Day" }, now)).toBeNull();
+  });
+});
+
+describe("bus board alerts", () => {
+  it("flags trouble with the bus, not escalators at a station it serves", async () => {
+    const { affectsRoute } = await import("../src/lib/routeAlerts");
+    const station = { route: "8,22,24,70,92", title: "Escalator 11D1E out of service at Coxwell", planned: true };
+    expect(affectsRoute(station, "70")).toBe(false);
+    expect(affectsRoute({ route: "70", title: "70 O'Connor detour via Woodbine", planned: false }, "70")).toBe(true);
+    expect(affectsRoute({ route: "70", title: "Elevator out of service", planned: true }, "70")).toBe(false);
+    expect(affectsRoute({ route: "170", title: "Detour", planned: false }, "70")).toBe(false);
+  });
+});
+
+describe("short destinations", () => {
+  it("drops the branch and abbreviates Station", async () => {
+    const { shortDestination } = await import("../src/lib/format");
+    expect(shortDestination("Broadview Station via O'Connor")).toBe("Broadview Stn");
+    expect(shortDestination("Parkview Hills")).toBe("Parkview Hills");
+  });
+});

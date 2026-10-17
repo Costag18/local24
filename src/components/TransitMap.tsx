@@ -316,9 +316,11 @@ export function TransitMap({ now, paused }: { now: number; paused: boolean }) {
 
       <div ref={mapRef} className="relative flex-1" style={{ minHeight: 0, background: "var(--panel)" }}>
         {!data || !camera ? (
-          <div className="absolute inset-0 grid place-items-center label">
-            {error ? "Map unavailable" : "Loading map…"}
-          </div>
+          error ? (
+            <div className="absolute inset-0 grid place-items-center label">Map unavailable</div>
+          ) : (
+            <div className="absolute inset-0 skeleton-fill" />
+          )
         ) : (
           <svg
             viewBox={`0 0 ${W} ${H}`}

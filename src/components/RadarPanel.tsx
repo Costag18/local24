@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { ago, shortTime } from "@/lib/format";
 import { radarFrameUrl, radarGrid } from "@/lib/radar";
+import { Skeleton } from "./Skeleton";
 
 interface RadarInfo {
   frames: string[];
@@ -59,9 +60,11 @@ export function RadarPanel({ now }: { now: number }) {
 
   if (!grid || !info) {
     return (
-      <div className="h-full grid place-items-center label" style={{ color: "var(--ink-faint)" }}>
-        {failed ? "Radar unavailable" : "Loading radar…"}
-      </div>
+      failed ? (
+        <div className="h-full grid place-items-center label" style={{ color: "var(--ink-faint)" }}>Radar unavailable</div>
+      ) : (
+        <div className="h-full skeleton-fill" />
+      )
     );
   }
 

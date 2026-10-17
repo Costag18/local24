@@ -14,6 +14,7 @@ import { ingestLiveCamStatus } from "./sources/livecams";
 import { ingestStreets } from "./sources/streets";
 import { ingestPickup } from "./sources/pickup";
 import { ingestMarket } from "./sources/market";
+import { ingestExtras } from "./sources/extras";
 
 export interface Job {
   id: string;
@@ -51,6 +52,8 @@ export const JOBS: Job[] = [
   { id: "pickup", label: "Garbage schedule", interval: 12 * 60 * MIN, run: ingestPickup },
   // A dozen page loads a pass, spaced out: about what a person refreshing would do.
   { id: "market", label: "Marketplace", interval: 20 * MIN, run: ingestMarket },
+  // Holidays and the exchange rate change daily at most.
+  { id: "extras", label: "Holidays & USD/CAD", interval: 6 * 60 * MIN, run: ingestExtras },
   { id: "livecams", label: "Live cam status", interval: 30 * MIN, run: ingestLiveCamStatus },
   { id: "cams", label: "Camera catalogue", interval: 12 * 60 * MIN, run: ingestCamCatalogue, quiet: true },
   {

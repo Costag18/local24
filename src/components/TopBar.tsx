@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { binsReminder, clockTime, duration, longDate, temp } from "@/lib/format";
+import { useEffect, useRef, useState } from "react";
+import { binsReminder, clockTime, daysUntil, duration, longDate, shortTime, temp } from "@/lib/format";
 import { useNow } from "./hooks";
 import type { Pickup, Weather } from "@/lib/types";
 import type { PrinterView } from "@/lib/printer";
@@ -19,6 +19,8 @@ interface Props {
   printer: boolean;
   /** The next garbage collection; a reminder shows the evening before. */
   pickup: Pickup | null;
+  /** The next Ontario holiday; mentioned from two days out. */
+  holiday: { date: string; name: string } | null;
   /** A running kitchen timer, as its end time. */
   timer: { endsAt: number; label: string } | null;
   onTimerClear: () => void;
@@ -57,7 +59,7 @@ function Mode({
 }
 
 export function TopBar({
-  weather, connected, offline, onBattery, kiosk, night, dataSaver, printer, pickup, timer, onTimerClear,
+  weather, connected, offline, onBattery, kiosk, night, dataSaver, printer, pickup, holiday, timer, onTimerClear,
   layout, onOpenPalette, onToggleKiosk, onToggleNight,
 }: Props) {
   const now = useNow(1000);
@@ -98,6 +100,7 @@ export function TopBar({
         {/* Arranging windows sits with the mode chips: it is a mode too. */}
         <TimerChip timer={timer} now={now} onClear={onTimerClear} />
         {pickup && <BinsChip pickup={pickup} now={now} />}
+        {holiday && <HolidayChip holiday={holiday} now={now} />}
         {printer && <PrinterChip />}
         <LayoutMenu {...layout} />
         <DisplayButton />
@@ -262,26 +265,64 @@ function PrinterChip() {
     };
   }, []);
 
+  // A print finishing while the screen is up gets a notice in the corner —
+  // silent, by request, but hard to miss. Only a change seen live counts, so
+  // reopening the dashboard after the fact does not announce it again.
+  const lastState = useRef<string | null>(null);
+  const [toast, setToast] = useState<{ ok: boolean; file: string } | null>(null);
+  const state = view?.status?.state ?? null;
+  useEffect(() => {
+    const before = lastState.current;
+    lastState.current = state;
+    const wasActive = before === "RUNNING" || before === "PAUSE" || before === "PREPARE";
+    if (wasActive && (state === "FINISH" || state === "FAILED")) {
+      setToast({ ok: state === "FINISH", file: view?.status?.file ?? "" });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state]);
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 10 * 60_000);
+    return () => clearTimeout(t);
+  }, [toast]);
+
   const s = view?.status;
-  if (!s) return null;
+  const notice = toast && (
+    <button
+      className={`print-toast${toast.ok ? "" : " print-toast-bad"}`}
+      onClick={() => setToast(null)}
+      title="Dismiss"
+    >
+      <span className="tag">{toast.ok ? "PRINT FINISHED" : "PRINT FAILED"}</span>
+      <span className="print-toast-file">{toast.file || "Your print"}</span>
+      <span className="label" style={{ color: "rgba(255,255,255,0.6)" }}>click to dismiss</span>
+    </button>
+  );
+  if (!s) return notice || null;
   const active = s.state === "RUNNING" || s.state === "PREPARE" || s.state === "PAUSE";
   const ended = (s.state === "FINISH" || s.state === "FAILED") && Date.now() - (view?.endedAt ?? 0) < ENDED_SHOWN_MS;
-  if (!active && !ended) return null;
+  if (!active && !ended) return notice || null;
 
+  // When it will be done, as a time on the clock: "done 9:41p" answers the
+  // real question ("can I take it off before bed?") better than "4h 53m".
+  const doneAt = s.remainingMin !== null && s.remainingMin > 0 ? Date.now() + s.remainingMin * 60_000 : null;
   const text = active
-    ? `${s.state === "PAUSE" ? "PAUSED " : ""}${s.percent ?? 0}% · ${duration(s.remainingMin)}`
+    ? `${s.state === "PAUSE" ? "PAUSED " : ""}${s.percent ?? 0}% · ${doneAt && s.state !== "PAUSE" ? `done ${shortTime(doneAt).replace(/\s?([ap])\.?m\.?/i, "$1").toLowerCase()}` : duration(s.remainingMin)}`
     : s.state === "FINISH" ? "PRINT DONE" : "PRINT FAILED";
   const tone = s.state === "FAILED" || s.errorCode ? "var(--accent)" : ended ? "var(--ok)" : "var(--ink)";
 
   return (
+    <>
     <button
       onClick={() => window.dispatchEvent(new CustomEvent("local24:carousel-goto", { detail: "printer" }))}
       className="tag px-1.5 py-0.5 num"
-      title={`${s.file}${s.layer && s.totalLayers ? ` · layer ${s.layer}/${s.totalLayers}` : ""} — open the printer page`}
+      title={`${s.file}${s.layer && s.totalLayers ? ` · layer ${s.layer}/${s.totalLayers}` : ""}${active ? ` · ${duration(s.remainingMin)} left` : ""} — open the printer page`}
       style={{ background: "var(--panel-2)", color: tone, border: "1px solid var(--line)", borderRadius: 2 }}
     >
       ▣ {text}
     </button>
+    {notice}
+    </>
   );
 }
 
@@ -334,5 +375,24 @@ function TimerChip({
     >
       ⏱ {done ? `${timer.label} DONE` : `${mm}:${ss}`}
     </button>
+  );
+}
+
+/**
+ * A holiday coming up: from two days out, and on the day. The TTC runs a
+ * Sunday schedule and most stores close, which is the useful part to know.
+ */
+function HolidayChip({ holiday, now }: { holiday: { date: string; name: string }; now: number }) {
+  const n = daysUntil(holiday.date, now);
+  if (n < 0 || n > 2) return null;
+  const when = n === 0 ? "TODAY" : n === 1 ? "TOMORROW" : new Date(holiday.date + "T12:00").toLocaleDateString("en-CA", { weekday: "short" }).toUpperCase();
+  return (
+    <span
+      className="tag px-1.5 py-0.5"
+      title={`${holiday.name}: TTC on Sunday service, most stores closed`}
+      style={{ background: "var(--panel-2)", color: "var(--cool)", border: "1px solid var(--line)", borderRadius: 2 }}
+    >
+      {n === 0 ? "HOLIDAY" : `HOLIDAY ${when}`} · {holiday.name}
+    </span>
   );
 }

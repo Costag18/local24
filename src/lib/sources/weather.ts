@@ -205,6 +205,7 @@ export function nearestFeature(features: Feature[], lat: number, lon: number): F
 
 interface OMResp {
   minutely_15?: { time?: string[]; precipitation?: number[] };
+  current?: { uv_index?: number };
 }
 
 export async function ingestWeather(): Promise<void> {
@@ -220,7 +221,7 @@ export async function ingestWeather(): Promise<void> {
     ),
     fetchJson<OMResp>(
       "weather.nowcast",
-      `${OM}?latitude=${lat}&longitude=${lon}&minutely_15=precipitation&forecast_minutely_15=8&timezone=auto`,
+      `${OM}?latitude=${lat}&longitude=${lon}&minutely_15=precipitation&forecast_minutely_15=8&current=uv_index&timezone=auto`,
     ),
     fetchJson<{ current?: { us_aqi?: number } }>(
       "weather.aqi",
@@ -245,6 +246,7 @@ export async function ingestWeather(): Promise<void> {
     ...base,
     place: base.place || label,
     aqi: aq?.current?.us_aqi ?? null,
+    uv: typeof om?.current?.uv_index === "number" ? Math.round(om.current.uv_index * 10) / 10 : null,
     nowcast,
   } satisfies Weather);
 }

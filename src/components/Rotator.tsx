@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRotation } from "./hooks";
+import { PageDots } from "./PageDots";
 
 export interface RotatorPage {
   key: string;
@@ -66,20 +67,13 @@ export function Rotator({ pages, dwellMs, locked = false }: { pages: RotatorPage
         ) : null,
       )}
       <div className="rotator-dots">
-        {pages.map((p, i) => (
-          <button
-            key={p.key}
-            onClick={() => setIndex(i)}
-            title={p.title}
-            style={{
-              width: i === index ? 14 : 7,
-              height: 3,
-              borderRadius: 2,
-              background: i === index ? "var(--accent)" : "var(--line)",
-              transition: "width 200ms ease, background 200ms ease",
-            }}
-          />
-        ))}
+        <PageDots
+          titles={pages.map((p) => p.title)}
+          index={index}
+          onPick={setIndex}
+          dwellMs={pages[index]?.dwellMs ?? dwellMs}
+          paused={locked || reading}
+        />
       </div>
     </div>
   );

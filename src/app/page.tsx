@@ -12,7 +12,7 @@ import { CommandPalette, type Command } from "@/components/CommandPalette";
 import { nudgeVolume, toggleMuted } from "@/lib/player";
 import { Shortcuts } from "@/components/Shortcuts";
 import { Reader } from "@/components/Reader";
-import { inTimeWindow } from "@/lib/format";
+import { fxLine, holidayLine, inTimeWindow } from "@/lib/format";
 import type { SectionId } from "@/lib/layout";
 import {
   closeLeaf, defaultTree, flipSplit, leaves, movePane, paneId, safeTree, setLeafLocked,
@@ -419,6 +419,18 @@ export default function Page() {
      currentChannel, setChannelId, setChannelRef, pinnedCam],
   );
 
+  /** Facts for the ticker, rebuilt when the data or the day changes. */
+  const today = new Date(now).toDateString();
+  const tickerFacts = useMemo(() => {
+    const out: { tag: string; text: string }[] = [];
+    if (state?.fx) out.push({ tag: "USD/CAD", text: fxLine(state.fx) });
+    const next = state?.holidays?.[0];
+    const line = next ? holidayLine(next, Date.now()) : null;
+    if (line) out.push({ tag: "HOLIDAY", text: `${line} · TTC on Sunday service` });
+    return out;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state?.fx, state?.holidays, today]);
+
   const paletteCommands = useMemo<Command[]>(
     () => [
       { id: "act:refresh", group: "Action", label: "Refresh all sources", run: () => void refresh() },
@@ -495,6 +507,7 @@ export default function Page() {
           dataSaver={dataSaver}
           printer={Boolean(cfg.printer.host && cfg.printer.serial)}
           pickup={state.pickup?.next[0] ?? null}
+          holiday={state.holidays?.[0] ?? null}
           timer={timer}
           onTimerClear={() => setTimer(null)}
           layout={layoutMenu}
@@ -537,6 +550,7 @@ export default function Page() {
           custom={cfg.ticker.custom}
           mix={cfg.ticker.mix}
           speed={cfg.ticker.speed}
+          facts={tickerFacts}
         />
       </div>
 

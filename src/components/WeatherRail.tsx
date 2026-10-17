@@ -109,6 +109,12 @@ export function WeatherRail({ weather, at, now, pickup }: Props) {
               >
                 {aq.text}
               </div>
+              {/* UV only matters in daylight and from 3 up, so it is absent otherwise. */}
+              {weather.uv != null && weather.uv >= 3 && (
+                <div className="label wx-caption" style={{ color: weather.uv >= 6 ? "var(--warn)" : "var(--ink-dim)" }}>
+                  UV {Math.round(weather.uv)}
+                </div>
+              )}
             </div>
             <div className="wx-cell">
               <div className="label wx-caption">Sun</div>

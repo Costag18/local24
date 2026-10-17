@@ -273,3 +273,31 @@ export function shortStop(title: string): string {
     .replace(/\bSouth\b/g, "S");
   return side ? `${short} ${side[1][0].toUpperCase()} side` : short;
 }
+
+/**
+ * Where a bus is headed, as short as it can be and still be right:
+ * "Broadview Station via O'Connor" becomes "Broadview Stn". The branch
+ * detail is the part a rider already knows.
+ */
+export function shortDestination(towards: string): string {
+  return towards.replace(/\s+via\s+.*$/i, "").replace(/\bStation\b/i, "Stn").trim();
+}
+
+/** "US$1 = C$1.4154 ▼0.30%": the daily rate and its move since the day before. */
+export function fxLine(fx: { rate: number; prev: number | null }): string {
+  const base = `US$1 = C$${fx.rate.toFixed(4)}`;
+  if (!fx.prev) return base;
+  const pct = ((fx.rate - fx.prev) / fx.prev) * 100;
+  if (Math.abs(pct) < 0.005) return `${base} · unchanged`;
+  return `${base} ${pct > 0 ? "▲" : "▼"}${Math.abs(pct).toFixed(2)}%`;
+}
+
+/** "Christmas Day · Fri Dec 25 · in 9 days", or null when it is far off. */
+export function holidayLine(h: { date: string; name: string }, now: number, withinDays = 30): string | null {
+  const n = daysUntil(h.date, now);
+  if (n < 0 || n > withinDays) return null;
+  const [y, m, d] = h.date.split("-").map(Number);
+  const day = new Date(y, m - 1, d).toLocaleDateString("en-CA", { weekday: "short", month: "short", day: "numeric" });
+  const when = n === 0 ? "today" : n === 1 ? "tomorrow" : `in ${n} days`;
+  return `${h.name} · ${day} · ${when}`;
+}
