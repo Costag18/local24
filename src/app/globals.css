@@ -538,17 +538,19 @@ select.pane-tool { background: var(--panel-2); color: var(--ink-dim); min-width:
   display: flex;
   align-items: center;
   min-width: 0;
-  gap: clamp(3px, 1.4cqw, 10px);
-  padding: 1px clamp(4px, 2cqw, 12px);
+  gap: clamp(3px, 1.2cqw, 10px);
+  padding: 0 clamp(4px, 1.5cqw, 12px);
 }
-.wx-icon { width: clamp(16px, min(8cqw, 26cqh), 92px); height: auto; }
+.wx-icon { width: clamp(16px, min(10cqw, 30cqh), 110px); height: auto; }
+/* Sized to the window, not to a cautious minimum: the numbers are the point,
+   so each one grows until its cell (or the window's height) runs out. */
 .wx-temp {
-  font-size: clamp(0.95rem, min(9cqw, 26cqh), 5rem);
+  font-size: clamp(0.95rem, min(13cqw, 30cqh), 6.5rem);
   line-height: 1;
   font-weight: 800;
   letter-spacing: -0.02em;
 }
-.wx-cond { font-size: clamp(0.42rem, min(2.4cqw, 7cqh), 1.3rem); max-width: 18ch; }
+.wx-cond { font-size: clamp(0.42rem, min(2.9cqw, 8cqh), 1.5rem); max-width: 24ch; }
 
 .wx-days {
   grid-area: days;
@@ -564,14 +566,14 @@ select.pane-tool { background: var(--panel-2); color: var(--ink-dim); min-width:
   align-items: center;
   justify-content: center;
   border-left: 1px solid var(--rule);
-  padding: 0 clamp(1px, 0.8cqw, 6px);
+  padding: 0 clamp(1px, 0.5cqw, 4px);
 }
 /* Four columns fit beside the current conditions; the rest wait for room. */
 .wx-day:nth-child(n + 5) { display: none; }
-.wx-dayname { font-size: clamp(0.4rem, min(2.1cqw, 7cqh), 1.15rem); }
-.wx-hi { font-size: clamp(0.55rem, min(3.4cqw, 11cqh), 2.2rem); }
-.wx-lo { font-size: clamp(0.48rem, min(2.6cqw, 8cqh), 1.6rem); }
-.wx-pop { font-size: clamp(0.4rem, min(2.1cqw, 7cqh), 1.15rem); }
+.wx-dayname { font-size: clamp(0.4rem, min(2.5cqw, 8cqh), 1.3rem); }
+.wx-hi { font-size: clamp(0.55rem, min(5cqw, 15cqh), 3rem); line-height: 1.05; }
+.wx-lo { font-size: clamp(0.48rem, min(3.4cqw, 10cqh), 2rem); line-height: 1.05; }
+.wx-pop { font-size: clamp(0.4rem, min(2.4cqw, 7.5cqh), 1.3rem); }
 .wx-pop:empty { display: none; }
 
 .wx-stats {
@@ -584,7 +586,7 @@ select.pane-tool { background: var(--panel-2); color: var(--ink-dim); min-width:
   text-align: center;
 }
 .wx-cell {
-  padding: 0 clamp(2px, 1.2cqw, 8px);
+  padding: 0 clamp(2px, 0.8cqw, 6px);
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -593,8 +595,12 @@ select.pane-tool { background: var(--panel-2); color: var(--ink-dim); min-width:
   gap: 0;
 }
 .wx-cell + .wx-cell { border-left: 1px solid var(--rule); }
-.wx-caption { font-size: clamp(0.4rem, min(2.1cqw, 7cqh), 1.15rem); }
-.wx-value { font-size: clamp(0.52rem, min(3.2cqw, 11cqh), 2rem); line-height: 1.15; }
+.wx-caption { font-size: clamp(0.4rem, min(2.4cqw, 7.5cqh), 1.25rem); }
+.wx-value { font-size: clamp(0.52rem, min(4.6cqw, 14cqh), 2.8rem); line-height: 1.05; }
+/* Sunrise over sunset: two short lines instead of one long one, which was the
+   widest value in the row and held every other number back. */
+.wx-sun { display: flex; flex-direction: column; align-items: center; font-size: 0.78em; line-height: 1.12; }
+.wx-sun-mark { color: var(--ink-faint); font-size: 0.8em; margin-right: 0.15em; }
 
 .wx-hours {
   grid-area: hours;
@@ -611,8 +617,8 @@ select.pane-tool { background: var(--panel-2); color: var(--ink-dim); min-width:
   justify-content: center;
 }
 .wx-hour + .wx-hour { border-left: 1px solid var(--rule); }
-.wx-hourtime { font-size: clamp(0.36rem, min(1.9cqw, 7cqh), 1.1rem); }
-.wx-hourtemp { font-size: clamp(0.5rem, min(3cqw, 11cqh), 1.9rem); }
+.wx-hourtime { font-size: clamp(0.36rem, min(2.3cqw, 7.5cqh), 1.2rem); }
+.wx-hourtemp { font-size: clamp(0.5rem, min(4.6cqw, 14cqh), 2.6rem); line-height: 1.1; }
 
 .wx-alert { grid-area: alert; padding: clamp(1px, 0.8cqw, 5px) clamp(4px, 2cqw, 12px); }
 

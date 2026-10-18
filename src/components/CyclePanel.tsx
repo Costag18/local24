@@ -58,10 +58,13 @@ export function CyclePanel(props: Props) {
   const pinFights = Boolean(todayCard) && panels.includes("fights");
 
   const printerOn = props.printer.configured;
+  // Every page stays in the list even on a fight day, so the dots can still
+  // take you to the others; the day only decides where the panel rests.
   const list = useMemo(
-    () => (pinFights ? (["fights"] as PanelId[]) : panels.filter((p) => p !== "printer" || printerOn)),
-    [pinFights, panels, printerOn],
+    () => panels.filter((p) => p !== "printer" || printerOn),
+    [panels, printerOn],
   );
+  const fightsIndex = list.indexOf("fights");
   /**
    * Held still while you are reading it.
    *
@@ -106,9 +109,16 @@ export function CyclePanel(props: Props) {
     };
   }, [index, list, setIndex]);
 
+  // On a fight day the card is home: the panel starts there and holds. Clicking
+  // over to another page works, and after two minutes it comes back.
   useEffect(() => {
-    if (pinFights) setIndex(0);
-  }, [pinFights, setIndex]);
+    if (pinFights && fightsIndex >= 0) setIndex(fightsIndex);
+  }, [pinFights, fightsIndex, setIndex]);
+  useEffect(() => {
+    if (!pinFights || fightsIndex < 0 || index === fightsIndex) return;
+    const t = setTimeout(() => setIndex(fightsIndex), 2 * 60_000);
+    return () => clearTimeout(t);
+  }, [pinFights, fightsIndex, index, setIndex]);
 
   const current = list[index] ?? "tech";
 
@@ -133,7 +143,7 @@ export function CyclePanel(props: Props) {
       <div className="slab">
         <span className="label label-accent slab-name">{TITLES[current]}</span>
         {current === "market" && <NewCount listings={props.market} now={now} />}
-        {pinFights && <span className="label" style={{ color: "var(--accent)" }}>TODAY</span>}
+        {pinFights && current === "fights" && <span className="label" style={{ color: "var(--accent)" }}>TODAY</span>}
         <span className="flex-1" />
         {list.length > 1 && (
           <PageDots

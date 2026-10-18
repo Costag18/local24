@@ -118,10 +118,11 @@ export function WeatherRail({ weather, at, now, pickup }: Props) {
             </div>
             <div className="wx-cell">
               <div className="label wx-caption">Sun</div>
-              <div className="num wx-value font-bold truncate">
-                {weather.sunrise ? compactTime(weather.sunrise) : "--"}
-                <span style={{ color: "var(--ink-faint)" }}> · </span>
-                {weather.sunset ? compactTime(weather.sunset) : "--"}
+              <div className="num wx-value font-bold">
+                <span className="wx-sun">
+                  <span><span className="wx-sun-mark">↑</span>{weather.sunrise ? compactTime(weather.sunrise) : "--"}</span>
+                  <span><span className="wx-sun-mark">↓</span>{weather.sunset ? compactTime(weather.sunset) : "--"}</span>
+                </span>
               </div>
             </div>
             {pickup && (
