@@ -9,7 +9,7 @@ const g = globalThis as unknown as { __local24Radar?: { at: number; frames: stri
 /**
  * Which radar frames exist right now. The list lives in a WMS capabilities
  * document a browser cannot read cross-origin, so the server reads it — once
- * every couple of minutes, shared by every screen (and the TV page).
+ * every couple of minutes, shared by every screen.
  */
 export async function radarFrames(): Promise<string[]> {
   const hit = g.__local24Radar;

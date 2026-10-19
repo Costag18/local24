@@ -4,7 +4,7 @@
  * <img>, with no polling, which is the difference between one frame a second
  * and fifteen or twenty.
  *
- * A viewer slower than the camera — a PS3 on Wi-Fi — must not make the server
+ * A viewer slower than the camera — a phone on weak Wi-Fi — must not make the server
  * pile frames up in memory. The stream holds at most about one frame in its
  * queue; while that has not drained, new frames are skipped rather than
  * queued, so a slow screen simply sees fewer of them. The number of streams

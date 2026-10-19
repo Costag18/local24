@@ -1,5 +1,5 @@
 /**
- * Route colours shared by the map, the next-buses board and the TV page.
+ * Route colours shared by the map and the next-buses board.
  * TTC ships the same maroon for nearly every bus route, so routes are
  * coloured from a categorical palette by their position in the followed list.
  */

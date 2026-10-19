@@ -3,7 +3,6 @@ import { spawn } from "node:child_process";
 import { existsSync, readFileSync, unlinkSync } from "node:fs";
 import path from "node:path";
 import { stopBridge } from "@/lib/nest/bridge";
-import { stop as stopMirror } from "@/lib/mirror";
 
 export const dynamic = "force-dynamic";
 
@@ -50,8 +49,6 @@ function killKioskBrowser() {
 export async function POST() {
   // The bridge's own browser first — it is a separate process from the kiosk.
   await stopBridge().catch(() => undefined);
-  // And the hidden browser that feeds the PS3 mirror, if it is running.
-  await stopMirror().catch(() => undefined);
   killKioskBrowser();
 
   if (existsSync(PID_FILE)) {
