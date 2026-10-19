@@ -25,3 +25,37 @@ describe("MJPEG streams", () => {
     expect(text).toContain("Content-Type: image/jpeg\r\nContent-Length: 5\r\n\r\n");
   });
 });
+
+describe("MJPEG backpressure", () => {
+  it("stops taking frames while a slow viewer has not read the last ones", async () => {
+    let calls = 0;
+    const big = Buffer.alloc(200 * 1024, 7);
+    const ctrl = new AbortController();
+    const res = mjpegResponse(new Request("http://x/", { signal: ctrl.signal }), {
+      fps: 200,
+      next: () => ({ jpg: big, at: ++calls }),
+    });
+    // Nobody reads for a while: frames must be skipped, not piled up.
+    await new Promise((r) => setTimeout(r, 300));
+    ctrl.abort();
+    await res.body!.cancel();
+    expect(calls).toBeLessThanOrEqual(3);
+  });
+
+  it("refuses streams past the cap instead of opening without limit", () => {
+    const ctrls: AbortController[] = [];
+    const responses: Response[] = [];
+    for (let i = 0; i < 13; i++) {
+      const c = new AbortController();
+      ctrls.push(c);
+      responses.push(mjpegResponse(new Request("http://x/", { signal: c.signal }), { fps: 1, next: () => ({ jpg: null, at: 0 }) }));
+    }
+    expect(responses.slice(0, 12).every((r) => r.status === 200)).toBe(true);
+    expect(responses[12].status).toBe(503);
+    for (const c of ctrls) c.abort();
+    // Closed streams free their slots.
+    const again = mjpegResponse(new Request("http://x/"), { fps: 1, next: () => ({ jpg: null, at: 0 }) });
+    expect(again.status).toBe(200);
+    void again.body?.cancel();
+  });
+});
