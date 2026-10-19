@@ -32,7 +32,6 @@ const STATE_LABEL: Record<string, string> = {
  */
 export function PrinterPanel({ label }: { label: string }) {
   const [view, setView] = useState<PrinterView | null>(null);
-  const [frame, setFrame] = useState<string | null>(null);
   const [camState, setCamState] = useState<string>("connecting");
 
   useEffect(() => {
@@ -52,32 +51,25 @@ export function PrinterPanel({ label }: { label: string }) {
     };
   }, []);
 
-  // Frames are fetched as blobs so a 204 ("no picture yet") never shows a
-  // broken-image icon, and the previous frame stays up until the next lands.
+  // The picture is a live MJPEG stream (up to 20 frames a second) once the
+  // camera is up. Until then, and to notice it dropping, the state is checked
+  // every couple of seconds — a header-only answer, no image.
+  const [streamKey, setStreamKey] = useState(0);
   useEffect(() => {
     let cancelled = false;
-    let url: string | null = null;
-    const pull = async () => {
+    const peek = async () => {
       try {
-        const r = await fetch("/api/printer/frame", { cache: "no-store" });
-        if (cancelled) return;
-        setCamState(r.headers.get("x-camera-state") ?? "error");
-        if (r.status !== 200) return;
-        const next = URL.createObjectURL(await r.blob());
-        if (cancelled) return URL.revokeObjectURL(next);
-        if (url) URL.revokeObjectURL(url);
-        url = next;
-        setFrame(next);
+        const r = await fetch("/api/printer/frame?peek=1", { cache: "no-store" });
+        if (!cancelled) setCamState(r.headers.get("x-camera-state") ?? "error");
       } catch {
         /* the next tick retries */
       }
     };
-    void pull();
-    const t = setInterval(() => void pull(), 1000);
+    void peek();
+    const t = setInterval(() => void peek(), 2500);
     return () => {
       cancelled = true;
       clearInterval(t);
-      if (url) URL.revokeObjectURL(url);
     };
   }, []);
 
@@ -87,10 +79,13 @@ export function PrinterPanel({ label }: { label: string }) {
 
   return (
     <div className="relative h-full" style={{ background: "#000", minHeight: 0 }}>
-      {frame && camState === "streaming" ? (
+      {camState === "streaming" ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={frame}
+          key={streamKey}
+          src={`/api/printer/frame?stream=1&k=${streamKey}`}
+          // A dropped stream (server restart, Wi-Fi blip) reconnects itself.
+          onError={() => setTimeout(() => setStreamKey((k) => k + 1), 2000)}
           alt={label}
           style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "contain" }}
         />

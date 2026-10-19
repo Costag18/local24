@@ -22,6 +22,12 @@ const PORT = 9333;
 const HOME = "https://home.google.com/";
 /** Below this the browser is doing more work than the panel can show. */
 const MIN_INTERVAL_MS = 700;
+/**
+ * While a screen is watching the live stream, frames are taken this often
+ * (about 15 a second, allowing for the capture itself). The camera is only 640x360, so each one is
+ * cheap; the slow rate above applies the rest of the time.
+ */
+const STREAM_INTERVAL_MS = 45;
 
 export type BridgeMode = "off" | "signin" | "capturing";
 
@@ -45,10 +51,14 @@ interface Shared {
   camErrors: Map<string, string>;
   tabs: Map<string, string>; // camera id -> CDP target id
   sessions: Map<string, CdpSession>; // target id -> socket
-  loop: ReturnType<typeof setInterval> | null;
+  loop: ReturnType<typeof setTimeout> | null;
   capturing: boolean;
   turn: number;
   lastAutoStart: number;
+  /** Until when a live stream is being watched; capture runs fast until then. */
+  streamUntil?: number;
+  /** Bumped whenever the loop is restarted, so an older loop stops itself. */
+  loopGen?: number;
 }
 
 /**
@@ -210,8 +220,9 @@ export function ensureBridge(): void {
 }
 
 export async function stopBridge(): Promise<void> {
-  if (shared.loop) clearInterval(shared.loop);
+  if (shared.loop) clearTimeout(shared.loop);
   shared.loop = null;
+  shared.loopGen = (shared.loopGen ?? 0) + 1;
   for (const s of sessions.values()) s.close();
   sessions.clear();
   tabs.clear();
@@ -234,14 +245,27 @@ export async function stopBridge(): Promise<void> {
   state.mode = "off";
 }
 
+/** A live stream is open: keep capturing at the fast rate for a few seconds. */
+export function noteNestStreaming(): void {
+  shared.streamUntil = Date.now() + 4000;
+}
+
 function scheduleLoop(cams: HomeCam[]) {
-  if (shared.loop) clearInterval(shared.loop);
-  const interval = Math.max(
+  if (shared.loop) clearTimeout(shared.loop);
+  const gen = (shared.loopGen = (shared.loopGen ?? 0) + 1);
+  const slow = Math.max(
     MIN_INTERVAL_MS,
     Math.min(...cams.map((c) => c.refreshMs || 3000)),
   );
-  shared.loop = setInterval(() => void captureAll(), interval);
-  void captureAll();
+  // A timer that picks its own next delay, so the rate can change on the fly:
+  // fast while someone watches the stream, slow while only stills are asked for.
+  const step = async () => {
+    await captureAll();
+    if (state.mode !== "capturing" || gen !== shared.loopGen) return;
+    const fast = (shared.streamUntil ?? 0) > Date.now();
+    shared.loop = setTimeout(() => void step(), fast ? STREAM_INTERVAL_MS : slow);
+  };
+  void step();
 }
 
 /**

@@ -24,7 +24,14 @@ interface Props {
  */
 export function HomeCams({ cams, suspend }: Props) {
   const [tick, setTick] = useState(() => Date.now());
-  const [failed, setFailed] = useState<Record<string, boolean>>({});
+  // A Nest camera is a live stream that shows "Connecting…" until its first
+  // frame arrives; a stream that drops reconnects itself (a new key).
+  const [failed, setFailed] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries(cams.filter((c) => c.kind === "nest").map((c) => [c.id, true])),
+  );
+  const [streamKey, setStreamKey] = useState<Record<string, number>>({});
+  const reconnect = (id: string) =>
+    setTimeout(() => setStreamKey((k) => ({ ...k, [id]: (k[id] ?? 0) + 1 })), 2000);
   const [bodyRef, box] = useBox<HTMLDivElement>();
   const grid = bestGrid(cams.length, box.w, box.h);
 
@@ -33,7 +40,7 @@ export function HomeCams({ cams, suspend }: Props) {
   // served as a frame-at-a-time by the bridge, and when this only matched
   // `snapshot` the clock never started and the picture never changed.
   const shortest = cams
-    .filter((c) => c.kind !== "mjpeg")
+    .filter((c) => c.kind !== "mjpeg" && c.kind !== "nest")
     .reduce((min, c) => Math.min(min, Math.max(500, c.refreshMs || 5000)), 60_000);
 
   useEffect(() => {
@@ -90,10 +97,15 @@ export function HomeCams({ cams, suspend }: Props) {
                 src={
                   cam.kind === "mjpeg"
                     ? `/api/homecam/${encodeURIComponent(cam.id)}`
-                    : `/api/homecam/${encodeURIComponent(cam.id)}?t=${tick}`
+                    : cam.kind === "nest" && !suspend
+                      ? `/api/homecam/${encodeURIComponent(cam.id)}?stream=1&k=${streamKey[cam.id] ?? 0}`
+                      : `/api/homecam/${encodeURIComponent(cam.id)}?t=${tick}`
                 }
                 alt={cam.label}
-                onError={() => setFailed((f) => (f[cam.id] ? f : { ...f, [cam.id]: true }))}
+                onError={() => {
+                  setFailed((f) => (f[cam.id] ? f : { ...f, [cam.id]: true }));
+                  if (cam.kind === "nest") reconnect(cam.id);
+                }}
                 onLoad={() => setFailed((f) => (f[cam.id] ? { ...f, [cam.id]: false } : f))}
                 style={{
                   position: "absolute",

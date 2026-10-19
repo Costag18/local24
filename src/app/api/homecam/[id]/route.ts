@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { loadConfig } from "@/lib/config";
 import { withCredentials } from "@/lib/homecam";
-import { ensureBridge, getNestFrame } from "@/lib/nest/bridge";
+import { ensureBridge, getNestFrame, noteNestStreaming } from "@/lib/nest/bridge";
+import { mjpegResponse } from "@/lib/mjpeg";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +24,19 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
   // A Nest camera has no URL to fetch: the bridge has already captured a frame
   // from the signed-in browser window, so it is served straight from memory.
   if (cam.kind === "nest") {
+    // `?stream=1`: a live MJPEG stream at about 15 frames a second. Keeping it
+    // open is what switches the bridge to its fast capture rate.
+    if (new URL(req.url).searchParams.get("stream") === "1") {
+      ensureBridge();
+      return mjpegResponse(req, {
+        fps: 15,
+        onTick: noteNestStreaming,
+        next: () => {
+          const f = getNestFrame(id);
+          return { jpg: f?.buf ?? null, at: f?.at ?? 0 };
+        },
+      });
+    }
     const frame = getNestFrame(id);
     if (!frame) {
       // Nothing yet: either it is still starting, or the machine rebooted and

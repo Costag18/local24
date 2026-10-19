@@ -221,7 +221,8 @@ try {
   if ($lan) {
     Write-Host ""
     Write-Host "  On this network:  http://${lan}:$port"
-    Write-Host "  PS3 / old TV:     http://${lan}:$port/tv"
+    Write-Host "  PS3 (exact look): http://${lan}:$port/tv/live"
+    Write-Host "  PS3 (lighter):    http://${lan}:$port/tv"
     if (-not (Get-NetFirewallRule -DisplayName 'LOCAL 24' -ErrorAction SilentlyContinue)) {
       Write-Host "  (if another device cannot reach it, run tools\allow-lan.ps1 as administrator - once)"
     }

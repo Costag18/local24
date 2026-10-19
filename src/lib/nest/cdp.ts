@@ -71,18 +71,23 @@ export class CdpSession {
   private ws: WebSocket;
   private nextId = 1;
   private pending = new Map<number, Pending>();
+  private listeners = new Map<string, ((params: unknown) => void)[]>();
 
   private constructor(ws: WebSocket) {
     this.ws = ws;
     ws.onmessage = (ev: MessageEvent) => {
       if (typeof ev.data !== "string") return;
-      let msg: { id?: number; result?: unknown; error?: { message?: string } };
+      let msg: { id?: number; method?: string; params?: unknown; result?: unknown; error?: { message?: string } };
       try {
         msg = JSON.parse(ev.data);
       } catch {
         return;
       }
-      if (typeof msg.id !== "number") return; // an event, not a reply
+      if (typeof msg.id !== "number") {
+        // An event, not a reply: hand it to whoever asked to hear it.
+        if (msg.method) for (const fn of this.listeners.get(msg.method) ?? []) fn(msg.params);
+        return;
+      }
       const p = this.pending.get(msg.id);
       if (!p) return;
       this.pending.delete(msg.id);
@@ -145,6 +150,11 @@ export class CdpSession {
         reject(err instanceof Error ? err : new Error("cdp send failed"));
       }
     });
+  }
+
+  /** Listens for a protocol event, such as Page.screencastFrame. */
+  on(method: string, fn: (params: unknown) => void): void {
+    this.listeners.set(method, [...(this.listeners.get(method) ?? []), fn]);
   }
 
   close(): void {

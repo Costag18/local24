@@ -395,7 +395,7 @@ function findFfmpeg(): string | null {
   return null;
 }
 
-/** 1080p models: RTSPS through ffmpeg, a few JPEGs a second out of its stdout. */
+/** 1080p models: RTSPS through ffmpeg, twenty JPEGs a second out of its stdout. */
 function connectRtsp(url: string, p: { accessCode: string }): void {
   const exe = findFfmpeg();
   if (!exe) {
@@ -409,7 +409,9 @@ function connectRtsp(url: string, p: { accessCode: string }): void {
     // system trusts; ffmpeg 9 refuses it unless told not to verify. The
     // status connection makes the same choice for the same reason.
     "-loglevel", "error", "-tls_verify", "0", "-rtsp_transport", "tcp", "-i", authed,
-    "-vf", "fps=4,scale=1280:-2", "-q:v", "6", "-f", "image2pipe", "-vcodec", "mjpeg", "pipe:1",
+    // 20 a second: the printer page streams these as MJPEG, so the camera
+    // moves like video rather than updating once a second.
+    "-vf", "fps=20,scale=1280:-2", "-q:v", "7", "-f", "image2pipe", "-vcodec", "mjpeg", "pipe:1",
   ], { windowsHide: true });
   hub.ffmpeg = ff;
   hub.camState = "connecting";
