@@ -4,6 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ago, compactTime } from "@/lib/format";
 import { expandToAspect, unwrapHeading } from "@/lib/shape";
 import { useBox } from "./hooks";
+import { routeColor } from "@/lib/routeColors";
+export { routeColor };
 
 interface Viewport {
   latMin: number;
@@ -56,25 +58,6 @@ type MapLive = Pick<MapData, "vehicles" | "vehiclesAt" | "cameras" | "incidents"
  * sized in these units and so stay in proportion to the window.
  */
 const LONG_SIDE = 1000;
-
-/**
- * TTC returns the same maroon for nearly every bus route, which makes an
- * overlapping network unreadable. Routes are recoloured from a categorical
- * palette by position so neighbouring lines stay distinguishable.
- */
-const PALETTE = [
-  "#38bdf8", "#f59e0b", "#22c55e", "#e879f9", "#f87171",
-  "#a3e635", "#60a5fa", "#fb923c", "#2dd4bf", "#c084fc",
-  "#facc15", "#fb7185", "#93c5fd", "#fdba74",
-];
-
-export function routeColor(tag: string, index: number): string {
-  // Keep the real line colours for the subway, which TTC does set correctly.
-  if (tag === "1") return "#f8d40a";
-  if (tag === "2") return "#00a651";
-  if (tag === "4") return "#a21d68";
-  return PALETTE[index % PALETTE.length];
-}
 
 /**
  * Projects the data area into a fixed canvas, once per load.

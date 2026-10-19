@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { shortDestination, shortStop, shortTime } from "@/lib/format";
-import { routeColor } from "./TransitMap";
+import { routeColor } from "@/lib/routeColors";
 import { Skeleton } from "./Skeleton";
 import { affectsRoute, alertWord, type RouteAlert } from "@/lib/routeAlerts";
 
