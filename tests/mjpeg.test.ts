@@ -59,3 +59,28 @@ describe("MJPEG backpressure", () => {
     void again.body?.cancel();
   });
 });
+
+describe("MJPEG stalled viewers", () => {
+  it("drops a viewer that stops reading, freeing its place", async () => {
+    let calls = 0;
+    const big = Buffer.alloc(200 * 1024, 7);
+    const res = mjpegResponse(new Request("http://x/"), {
+      fps: 200,
+      stallMs: 150,
+      next: () => ({ jpg: big, at: ++calls }),
+    });
+    await new Promise((r) => setTimeout(r, 400));
+    // The stream has errored out; reading it now fails instead of hanging.
+    const reader = res.body!.getReader();
+    let failed = false;
+    try {
+      for (let i = 0; i < 10; i++) {
+        const { done } = await reader.read();
+        if (done) break;
+      }
+    } catch {
+      failed = true;
+    }
+    expect(failed).toBe(true);
+  });
+});

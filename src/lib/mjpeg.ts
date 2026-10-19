@@ -8,7 +8,9 @@
  * pile frames up in memory. The stream holds at most about one frame in its
  * queue; while that has not drained, new frames are skipped rather than
  * queued, so a slow screen simply sees fewer of them. The number of streams
- * open at once is capped too.
+ * open at once is capped, and a viewer that stops reading altogether (a
+ * frozen tab, a dead connection) is dropped after a while so it cannot hold
+ * one of those places forever.
  */
 
 const BOUNDARY = "local24frame";
@@ -16,6 +18,8 @@ const BOUNDARY = "local24frame";
 const QUEUE_BYTES = 256 * 1024;
 /** Every screen in the house, with room to spare; beyond this a stream is refused. */
 const MAX_STREAMS = 12;
+/** A viewer that has not taken a frame for this long has stopped watching. */
+const STALL_MS = 20_000;
 
 const g = globalThis as unknown as { __local24Streams?: { open: number } };
 const streams = (g.__local24Streams ??= { open: 0 });
@@ -27,6 +31,8 @@ export interface FrameSource {
   fps: number;
   /** Called on every tick, so the source knows someone is still watching. */
   onTick?: () => void;
+  /** Override of the stall timeout, for tests. */
+  stallMs?: number;
 }
 
 export function mjpegResponse(req: Request, src: FrameSource): Response {
@@ -39,6 +45,8 @@ export function mjpegResponse(req: Request, src: FrameSource): Response {
   let timer: ReturnType<typeof setTimeout> | null = null;
   let closed = false;
   let lastAt = -1;
+  let lastDrain = Date.now();
+  const stallMs = src.stallMs ?? STALL_MS;
   const stopAll = () => {
     if (closed) return;
     closed = true;
@@ -56,6 +64,7 @@ export function mjpegResponse(req: Request, src: FrameSource): Response {
             src.onTick?.();
             // Only fetch and send a frame if the last one has gone out.
             if ((controller.desiredSize ?? 0) > 0) {
+              lastDrain = Date.now();
               const f = await src.next();
               if (f.jpg && f.at !== lastAt && !closed) {
                 lastAt = f.at;
@@ -64,6 +73,11 @@ export function mjpegResponse(req: Request, src: FrameSource): Response {
                 controller.enqueue(new Uint8Array(f.jpg));
                 controller.enqueue(enc.encode("\r\n"));
               }
+            } else if (Date.now() - lastDrain > stallMs) {
+              // Nothing has been read for a long time: free the place.
+              stopAll();
+              controller.error(new Error("viewer stopped reading"));
+              return;
             }
           } catch {
             stopAll();
