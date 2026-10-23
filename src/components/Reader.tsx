@@ -114,7 +114,7 @@ export function Reader() {
 
   const kiosk = typeof document !== "undefined" && document.documentElement.dataset.kiosk === "1";
   const article = loaded?.kind === "article" ? loaded.article : null;
-  const thin = article !== null && article.blocks.length < 3;
+  const thin = article !== null && article.blocks.length < 3 && !article.links?.length;
   let host = "";
   try {
     host = new URL(url).hostname.replace(/^www\./, "");
@@ -224,6 +224,21 @@ export function Reader() {
                   ) : (
                     <p key={i} className="reader-p">{b.text}</p>
                   ),
+                )}
+                {/* Search results: each opens in this same reader. */}
+                {article.links && article.links.length > 0 && (
+                  <div className="reader-links">
+                    {article.links.map((l) => (
+                      <a key={l.url} href={l.url} className="reader-link">
+                        {l.image ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={l.image} alt="" loading="lazy" referrerPolicy="no-referrer" />
+                        ) : <span className="reader-link-blank" />}
+                        <span className="reader-link-title">{l.title}</span>
+                        <span className="label">{l.note}</span>
+                      </a>
+                    ))}
+                  </div>
                 )}
                 {thin && (
                   <div className="label" style={{ color: "var(--ink-faint)", marginTop: 12 }}>

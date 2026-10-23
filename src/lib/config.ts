@@ -102,7 +102,7 @@ export const DEFAULT_CONFIG: AppConfig = {
 
   // Radar rotates with the weather and the printer with the home camera,
   // so neither needs a page here.
-  panels: ["fights", "tech", "events", "market", "traffic", "transit", "crime"],
+  panels: ["fights", "tech", "events", "market", "ideas", "sellers", "leads", "print3d", "traffic", "transit", "crime"],
   panelDwellMs: 30_000,
   camBandDwellMs: 10000,
   videoCamDwellMs: 20000,
@@ -182,6 +182,17 @@ export const DEFAULT_CONFIG: AppConfig = {
   home: { label: "Home", lat: 43.70438, lon: -79.31837 },
   pickupCalendar: "",
 
+  // Searches tuned to what a print-and-paint shop makes: figures, cosplay,
+  // signs, decor, car parts, games. Broad on purpose; titles that are printer
+  // hardware are filtered out.
+  business: {
+    ebayQueries: [
+      "3d printed", "3d printed figure", "3d printed cosplay", "3d printed sign",
+      "3d printed planter", "3d printed dragon", "3d printed car", "3d printed organizer",
+      "3d printed miniature", "3d printed gift",
+    ],
+  },
+
   market: {
     enabled: true,
     sources: ["facebook", "kijiji", "karrot"],
@@ -211,6 +222,16 @@ export const DEFAULT_CONFIG: AppConfig = {
         queries: ["3d filament", "pla filament"],
         match: String.raw`filament|\bpla\b|petg|\babs\b|\btpu\b|spool`,
         exclude: String.raw`3d[- ]?printed|light bulb|lamp`,
+      },
+      {
+        // People nearby asking for something to be printed: customers.
+        id: "leads",
+        label: "Requests",
+        queries: ["3d printing", "3d print"],
+        match: String.raw`3d|print`,
+        // A listing selling a printer "that needs a part" is not someone asking for a print.
+        exclude: String.raw`^(?!.*(looking for|anyone|someone|who can|wanted|\biso\b)).*(printer|filament)|for sale|comes with|\bobo\b|selling`,
+        wanted: true,
       },
     ],
   },

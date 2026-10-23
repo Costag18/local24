@@ -185,10 +185,14 @@ export function parseKarrot(html: string): (Found & { km: number | null })[] {
 
 /** "Looking for…" posts are requests, not things for sale. */
 const WANTED = /^\s*(looking for|wanted|wtb|iso\b|in search of|buying\b)/i;
+/** Someone asking for a print, anywhere in the title. */
+const ASKING = /(looking for|wanted|wtb|\biso\b|in search of|\bneed(ed|s)?\b|anyone|someone|can (you|someone)|who can|request)/i;
 
 /** Whether a title belongs in a search: matches its pattern and none of its exclusions. */
-export function relevant(title: string, s: Pick<Search, "match" | "exclude">): boolean {
-  if (!title || WANTED.test(title)) return false;
+export function relevant(title: string, s: Pick<Search, "match" | "exclude" | "wanted">): boolean {
+  if (!title) return false;
+  // A request search keeps only requests; every other search drops them.
+  if (s.wanted ? !ASKING.test(title) : WANTED.test(title)) return false;
   try {
     if (s.match && !new RegExp(s.match, "i").test(title)) return false;
     if (s.exclude && new RegExp(s.exclude, "i").test(title)) return false;
@@ -272,9 +276,9 @@ export async function ingestMarket(): Promise<number> {
   }
 
   const now = Date.now();
-  // Searches removed in Settings take their listings with them.
-  const ids = new Set(m.searches.map((s) => s.id));
-  const stored = (getBlob<Listing[]>(KEY)?.value ?? []).filter((l) => ids.has(l.search));
+  // Searches removed in Settings take their listings with them, and listings
+  // a tightened filter would now reject go too.
+  const stored = stillWanted(getBlob<Listing[]>(KEY)?.value ?? [], m.searches);
   const merged = mergeListings(stored, batch, now);
   putBlob(KEY, merged);
   return merged.length;
@@ -301,6 +305,16 @@ export function balanceListings(all: Listing[], limit = 60): Listing[] {
   return picked.sort((a, b) => listedAt(b) - listedAt(a)).slice(0, limit);
 }
 
+/** Listings whose search still exists and whose title still passes its filter. */
+export function stillWanted(listings: Listing[], searches: Search[]): Listing[] {
+  const byId = new Map(searches.map((s) => [s.id, s]));
+  return listings.filter((l) => {
+    const s = byId.get(l.search);
+    return s !== undefined && relevant(l.title, s);
+  });
+}
+
 export function getListings(limit = 60): Listing[] {
-  return balanceListings(getBlob<Listing[]>(KEY)?.value ?? [], limit);
+  // Checked at read time too, so a filter change shows at once, not after the next fetch.
+  return balanceListings(stillWanted(getBlob<Listing[]>(KEY)?.value ?? [], loadConfig().market.searches), limit);
 }

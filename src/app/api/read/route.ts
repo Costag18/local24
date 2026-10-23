@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { BROWSER_UA } from "@/lib/http";
 import { extractArticle, isPublicUrl, type Article } from "@/lib/reader";
+import { printablesArticle } from "@/lib/printablesReader";
 
 export const dynamic = "force-dynamic";
 
@@ -65,6 +66,13 @@ export async function GET(req: Request) {
 
   const hit = cache.get(url);
   if (hit && Date.now() - hit.at < TTL_MS) return NextResponse.json(hit.article);
+
+  // Printables' pages are behind a bot check; its API is not.
+  const fromApi = await printablesArticle(url);
+  if (fromApi) {
+    cache.set(url, { at: Date.now(), article: fromApi });
+    return NextResponse.json(fromApi);
+  }
 
   const page = await fetchPage(url);
   if ("error" in page) return NextResponse.json({ error: page.error }, { status: 502 });

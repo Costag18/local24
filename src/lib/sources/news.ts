@@ -3,13 +3,17 @@ import { itemId, parseFeed, significantWords, similarity } from "../rss";
 import { pruneOrphanSources, upsertItems } from "../db";
 import { loadConfig } from "../config";
 import type { Item, ItemKind } from "../types";
+import { requestPlace } from "../business";
 
 interface FeedDef {
   sourceId: string;
   label: string;
   url: string;
-  /** Feeds are either tech or local; crime is derived from keywords. */
-  kind: Extract<ItemKind, "tech" | "local">;
+  /**
+   * Tech, local, 3D printing, or print requests ("lead"); crime is derived
+   * from keywords.
+   */
+  kind: Extract<ItemKind, "tech" | "local" | "print3d" | "lead">;
 }
 
 // Verified reachable from a scripted request. CP24's own RSS is 404 since their
@@ -34,6 +38,16 @@ export const FEEDS: FeedDef[] = [
   { sourceId: "news.citynews", label: "CityNews Toronto", url: "https://toronto.citynews.ca/feed/", kind: "local" },
   { sourceId: "news.cbc-toronto", label: "CBC Toronto", url: "https://www.cbc.ca/webfeed/rss/rss-canada-toronto", kind: "local" },
   { sourceId: "news.global-toronto", label: "Global Toronto", url: "https://globalnews.ca/toronto/feed/", kind: "local" },
+  // The 3D printing trade: industry news, and what Bambu and Prusa release —
+  // new printers and materials change what is worth offering.
+  { sourceId: "print3d.industry", label: "3D Printing Industry", url: "https://3dprintingindustry.com/feed/", kind: "print3d" },
+  { sourceId: "print3d.3dprint", label: "3DPrint.com", url: "https://3dprint.com/feed/", kind: "print3d" },
+  { sourceId: "print3d.voxel", label: "VoxelMatters", url: "https://www.voxelmatters.com/feed/", kind: "print3d" },
+  { sourceId: "print3d.bambu", label: "Bambu Lab", url: "https://blog.bambulab.com/rss/", kind: "print3d" },
+  { sourceId: "print3d.prusa", label: "Prusa", url: "https://blog.prusa3d.com/feed/", kind: "print3d" },
+  // People asking to have something printed, often paying. Reddit's JSON API
+  // refuses scripts now; its RSS does not.
+  { sourceId: "leads.reddit", label: "r/3Dprintmything", url: "https://www.reddit.com/r/3Dprintmything/new/.rss", kind: "lead" },
 ];
 
 export function isCrime(text: string, keywords: string[]): boolean {
@@ -201,6 +215,9 @@ export async function ingestNews(): Promise<number> {
       if (isMuted(entry.title, entry.summary, cfg.news.mute)) continue;
       const crime =
         feed.kind === "local" && isCrime(`${entry.title} ${entry.summary}`, cfg.news.crimeKeywords);
+      // A request from Toronto is a customer; one from Oregon mostly is not.
+      const place = feed.kind === "lead" ? requestPlace(entry.title) : null;
+      const nearby = place === "toronto" ? 4 : place === "ontario" ? 2.5 : place === "canada" ? 1.6 : 1;
       collected.push({
         id: itemId(feed.sourceId, entry.link, entry.title),
         kind: crime ? "crime" : feed.kind,
@@ -211,15 +228,17 @@ export async function ingestNews(): Promise<number> {
         link: entry.link,
         published: entry.published,
         fetched: now,
-        weight: scoreItem(entry.title, entry.summary, entry.published, weight, cfg.news.boost, now),
-        meta: { source: feed.label },
+        // Requests are often questions ("can anyone print this?"), which the
+        // headline scoring would bury; they rank on place and age alone.
+        weight: feed.kind === "lead" ? weight * nearby : scoreItem(entry.title, entry.summary, entry.published, weight, cfg.news.boost, now),
+        meta: place ? { source: feed.label, place } : { source: feed.label },
       });
     }
   }
 
   const active = FEEDS.map((f) => f.sourceId);
   // A feed removed from the config must stop appearing immediately.
-  for (const kind of ["tech", "local", "crime"]) pruneOrphanSources(kind, active);
+  for (const kind of ["tech", "local", "crime", "print3d", "lead"]) pruneOrphanSources(kind, active);
 
   return upsertItems(dedupe(collected));
 }

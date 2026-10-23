@@ -15,6 +15,8 @@ import { ingestStreets } from "./sources/streets";
 import { ingestPickup } from "./sources/pickup";
 import { ingestMarket } from "./sources/market";
 import { ingestExtras } from "./sources/extras";
+import { ingestEbay } from "./sources/ebay";
+import { ingestIdeas } from "./sources/ideas";
 
 export interface Job {
   id: string;
@@ -54,6 +56,10 @@ export const JOBS: Job[] = [
   { id: "market", label: "Marketplace", interval: 20 * MIN, run: ingestMarket },
   // Holidays and the exchange rate change daily at most.
   { id: "extras", label: "Holidays & USD/CAD", interval: 6 * 60 * MIN, run: ingestExtras },
+  // Two eBay searches a run, taking turns: every search comes round about
+  // every four hours, so a day-old reading is close at hand for "sold today".
+  { id: "ebay", label: "eBay best sellers", interval: 45 * MIN, run: ingestEbay },
+  { id: "ideas", label: "Print ideas", interval: 3 * 60 * MIN, run: ingestIdeas },
   { id: "livecams", label: "Live cam status", interval: 30 * MIN, run: ingestLiveCamStatus },
   { id: "cams", label: "Camera catalogue", interval: 12 * 60 * MIN, run: ingestCamCatalogue, quiet: true },
   {

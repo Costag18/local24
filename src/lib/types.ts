@@ -1,7 +1,7 @@
 // Shared shapes. Everything the UI renders passes through one of these, so a
 // new source only has to produce a known row type to appear on screen.
 
-export type ItemKind = "tech" | "local" | "crime" | "traffic" | "transit" | "fight";
+export type ItemKind = "tech" | "local" | "crime" | "traffic" | "transit" | "fight" | "print3d" | "lead";
 
 /** A normalized feed row. One table, one shape, discriminated by `kind`. */
 export interface Item {
@@ -204,7 +204,7 @@ export interface Listing {
   firstSeen: number;
 }
 
-export type PanelId = "fights" | "tech" | "traffic" | "transit" | "crime" | "events" | "printer" | "radar" | "market";
+export type PanelId = "fights" | "tech" | "traffic" | "transit" | "crime" | "events" | "printer" | "radar" | "market" | "ideas" | "sellers" | "leads" | "print3d";
 
 export interface Scene {
   id: string;
@@ -237,6 +237,11 @@ export interface AppConfig {
    * up from `home`, which is right unless the point sits on a boundary.
    */
   pickupCalendar: string;
+  /** The print shop: what sells, where ideas come from. See sources/ebay.ts. */
+  business: {
+    /** eBay searches whose listings' sold counts are tracked day to day. */
+    ebayQueries: string[];
+  };
   /** New local listings worth knowing about. See sources/market.ts. */
   market: {
     enabled: boolean;
@@ -254,6 +259,11 @@ export interface AppConfig {
       match: string;
       /** …and must not match this. */
       exclude?: string;
+      /**
+       * Keep only "looking for" posts instead of dropping them: people asking
+       * for something, which for a print shop are customers.
+       */
+      wanted?: boolean;
     }[];
   };
   /** Cameras within this radius are offered by "cams near me". */

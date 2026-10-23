@@ -6,6 +6,8 @@ import { upcomingEvents } from "./sources/events";
 import { getPickups } from "./sources/pickup";
 import { getListings } from "./sources/market";
 import { getFx, getHolidays, type Fx, type Holiday } from "./sources/extras";
+import { getSellers, type SellerItem } from "./sources/ebay";
+import { getIdeas, type TrendingModel, type TrendingSearch } from "./sources/ideas";
 import { localDate } from "./sources/pickup";
 import { loadConfig, publicConfig } from "./config";
 import { jobStatus } from "./poller";
@@ -41,6 +43,14 @@ export interface AppState {
   holidays: Holiday[];
   /** US dollar in Canadian dollars, daily. */
   fx: Fx | null;
+  /** 3D-printed listings selling on eBay; `tracking` once a day of readings exists. */
+  sellers: { items: Omit<SellerItem, "history">[]; tracking: boolean };
+  /** This week's trending models and today's trending searches. */
+  ideas: { models: TrendingModel[]; trends: TrendingSearch[] };
+  /** 3D printing industry news. */
+  print3d: Item[];
+  /** People asking for something to be printed (Reddit). */
+  leads: Item[];
   /** Diagnostics, only built for the health page — see `buildState`. */
   health: SourceHealth[];
   jobs: ReturnType<typeof jobStatus>;
@@ -93,6 +103,14 @@ export function buildState(diagnostics = false): AppState {
     market: getListings(),
     holidays: getHolidays(localDate(Date.now())),
     fx: getFx(),
+    sellers: (() => {
+      const s = getSellers(40);
+      // The day-to-day readings stay on the server; the screen needs the result.
+      return { tracking: s.tracking, items: s.items.map(({ history: _h, ...rest }) => rest) };
+    })(),
+    ideas: getIdeas(),
+    print3d: listItems(["print3d"], 25, true),
+    leads: listItems(["lead"], 25, true),
     // 9KB of per-source history that only the health page reads. It rode along
     // in every dashboard payload, ten seconds apart, for nothing.
     health: diagnostics ? listHealth() : [],

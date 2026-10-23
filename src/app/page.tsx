@@ -24,7 +24,8 @@ import type { Camera } from "@/lib/types";
 
 /** Carousel pages as the palette lists them. */
 const PAGE_NAMES: Record<string, string> = {
-  fights: "Fight cards", tech: "Tech news", events: "Local events", printer: "3D printer", radar: "Weather radar", market: "Marketplace",
+  fights: "Fight cards", tech: "Tech news", events: "Local events", printer: "3D printer", radar: "Weather radar", market: "Marketplace", ideas: "Print ideas", sellers: "Selling now",
+  leads: "Print requests", print3d: "3D printing news",
   crime: "Local crime", traffic: "Traffic", transit: "TTC alerts",
 };
 

@@ -8,6 +8,8 @@ import { AutoScroll } from "./AutoScroll";
 import { PrinterPanel } from "./PrinterPanel";
 import { RadarPanel } from "./RadarPanel";
 import { PageDots } from "./PageDots";
+import { IdeasPanel, LeadsPanel, SellersPanel } from "./BusinessPanels";
+import type { AppState } from "@/lib/state";
 import { highlightPlaces } from "@/lib/places";
 import type { FightCard, Item, Listing, LocalEvent, PanelId, TrafficEvent } from "@/lib/types";
 
@@ -28,6 +30,11 @@ interface Props {
   /** New local listings, newest first, and what each search is called. */
   market: Listing[];
   marketLabels: Record<string, string>;
+  /** The print shop pages. */
+  sellers: AppState["sellers"];
+  ideas: AppState["ideas"];
+  print3d: Item[];
+  leads: Item[];
   /** The printer page is skipped until a printer is set up. */
   printer: { configured: boolean; label: string };
 }
@@ -42,6 +49,10 @@ const TITLES: Record<PanelId, string> = {
   printer: "3D Printer",
   radar: "Radar",
   market: "Marketplace",
+  ideas: "Print Ideas",
+  sellers: "Selling Now",
+  leads: "Print Requests",
+  print3d: "3D Printing News",
 };
 
 export function CyclePanel(props: Props) {
@@ -179,8 +190,12 @@ export function CyclePanel(props: Props) {
         {current === "transit" && <TransitPanel items={props.transit} places={props.transitPlaces} cols={cols} />}
         {current === "events" && <EventsPanel events={props.events} now={now} cols={cols} />}
         {current === "market" && (
-          <MarketPanel listings={props.market} labels={props.marketLabels} now={now} cols={cols} />
+          <MarketPanel listings={props.market.filter((l) => l.search !== "leads")} labels={props.marketLabels} now={now} cols={cols} />
         )}
+        {current === "ideas" && <IdeasPanel ideas={props.ideas} now={now} />}
+        {current === "sellers" && <SellersPanel sellers={props.sellers} cols={cols} />}
+        {current === "leads" && <LeadsPanel leads={props.leads} listings={props.market} now={now} cols={cols} />}
+        {current === "print3d" && <ItemsPanel items={props.print3d} now={now} cols={cols} />}
         </AutoScroll>
         )}
       </div>

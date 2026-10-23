@@ -160,6 +160,10 @@ function SectionInner({
           fights={state.fights}
           events={state.events}
           market={state.market ?? []}
+          sellers={state.sellers ?? { items: [], tracking: false }}
+          ideas={state.ideas ?? { models: [], trends: [] }}
+          print3d={state.print3d ?? []}
+          leads={state.leads ?? []}
           marketLabels={Object.fromEntries(cfg.market.searches.map((s) => [s.id, s.label]))}
           printer={{ configured: Boolean(cfg.printer.host && cfg.printer.serial), label: cfg.printer.label }}
         />

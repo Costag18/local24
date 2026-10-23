@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { SECTION_IDS, SECTION_LABELS, normalizeLayout, type SectionId, type SectionSlot } from "@/lib/layout";
 import type { AppConfig, Camera, CamPlaylist, Channel, HomeCam, PanelId } from "@/lib/types";
 
-const PANELS: PanelId[] = ["fights", "tech", "events", "market", "radar", "printer", "traffic", "transit", "crime"];
+const PANELS: PanelId[] = ["fights", "tech", "events", "market", "ideas", "sellers", "leads", "print3d", "radar", "printer", "traffic", "transit", "crime"];
 
 export function SettingsClient() {
   const [cfg, setCfg] = useState<AppConfig | null>(null);

@@ -23,7 +23,7 @@ export interface PaneActions {
 }
 
 /** Every page the rotating window can cycle through. */
-const PANEL_PAGES: PanelId[] = ["fights", "tech", "events", "market", "radar", "printer", "traffic", "transit", "crime"];
+const PANEL_PAGES: PanelId[] = ["fights", "tech", "events", "market", "ideas", "sellers", "leads", "print3d", "radar", "printer", "traffic", "transit", "crime"];
 
 /** Lets a child ask its parent divider to give it a particular aspect. */
 export type FitAspect = (index: 0 | 1, aspect: number, chromePx: number) => void;

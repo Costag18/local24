@@ -21,6 +21,8 @@ export interface Article {
   published: number | null;
   description: string;
   blocks: { kind: "p" | "h"; text: string }[];
+  /** A list of further pages (search results), shown as cards that open in the reader. */
+  links?: { title: string; url: string; image: string | null; note: string }[];
 }
 
 const NAMED: Record<string, string> = {
