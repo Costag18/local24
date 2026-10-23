@@ -110,7 +110,8 @@ export function buildState(diagnostics = false): AppState {
     })(),
     ideas: getIdeas(),
     print3d: listItems(["print3d"], 25, true),
-    leads: listItems(["lead"], 25, true),
+    // Only Canadian requests (older rows from before that rule are skipped too).
+    leads: listItems(["lead"], 40, true).filter((it) => it.meta?.place && it.meta.place !== "elsewhere"),
     // 9KB of per-source history that only the health page reads. It rode along
     // in every dashboard payload, ten seconds apart, for nothing.
     health: diagnostics ? listHealth() : [],

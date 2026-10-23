@@ -82,7 +82,7 @@ export async function printablesArticle(url: string): Promise<Article | null> {
       blocks: [
         {
           kind: "h",
-          text: `${sellable ? "OK to sell prints" : "Personal use only, not for sale"} (${license})`,
+          text: `${sellable ? "✓ You can sell prints of this" : "Personal use only: print it, but don't sell it"} (licence: ${license})`,
         },
         { kind: "p", text: `♥ ${(p.likesCount ?? 0).toLocaleString()} likes · ${(p.downloadCount ?? 0).toLocaleString()} downloads` },
         ...(p.summary ? [{ kind: "p" as const, text: p.summary }] : []),
@@ -105,7 +105,7 @@ export async function printablesArticle(url: string): Promise<Article | null> {
         title: i.name as string,
         url: `https://www.printables.com/model/${i.id}${i.slug ? `-${i.slug}` : ""}`,
         image: printablesThumb(i.image?.filePath),
-        note: `♥ ${(i.likesCount ?? 0).toLocaleString()} · ${sellable ? "OK to sell" : "personal use"}`,
+        note: `♥ ${(i.likesCount ?? 0).toLocaleString()} · ${sellable ? "✓ can sell" : "personal only"}`,
         sellable,
       };
     })

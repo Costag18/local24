@@ -215,8 +215,10 @@ export async function ingestNews(): Promise<number> {
       if (isMuted(entry.title, entry.summary, cfg.news.mute)) continue;
       const crime =
         feed.kind === "local" && isCrime(`${entry.title} ${entry.summary}`, cfg.news.crimeKeywords);
-      // A request from Toronto is a customer; one from Oregon mostly is not.
+      // A request from Toronto is a customer; one from Oregon is not, so only
+      // Canadian requests are kept at all.
       const place = feed.kind === "lead" ? requestPlace(entry.title) : null;
+      if (place === "elsewhere") continue;
       const nearby = place === "toronto" ? 4 : place === "ontario" ? 2.5 : place === "canada" ? 1.6 : 1;
       collected.push({
         id: itemId(feed.sourceId, entry.link, entry.title),

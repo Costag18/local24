@@ -46,6 +46,30 @@ function SectionInner({
   const { state, now, visible, dataSaver, camRefresh, cams } = ctx;
   const cfg = state.config;
 
+  /** The rotating panel showing these pages (one page = that page alone). */
+  const carousel = (panels: PanelId[]) => (
+    <CyclePanel
+      panels={panels}
+      dwellMs={cfg.panelDwellMs}
+      locked={locked}
+      now={now}
+      tech={state.tech}
+      crime={state.crime}
+      traffic={state.traffic}
+      transit={state.transit}
+      transitPlaces={cfg.transitPlaces}
+      fights={state.fights}
+      events={state.events}
+      market={state.market ?? []}
+      sellers={state.sellers ?? { items: [], tracking: false }}
+      ideas={state.ideas ?? { models: [], trends: [] }}
+      print3d={state.print3d ?? []}
+      leads={state.leads ?? []}
+      marketLabels={Object.fromEntries(cfg.market.searches.map((s) => [s.id, s.label]))}
+      printer={{ configured: Boolean(cfg.printer.host && cfg.printer.serial), label: cfg.printer.label }}
+    />
+  );
+
   switch (id) {
     case "video":
       return (
@@ -96,7 +120,9 @@ function SectionInner({
     }
 
     case "map":
-      // The map says where the buses are; the board says when one reaches you.
+      // The map says where the buses are; the board says when one reaches you;
+      // the TTC and road alerts say what is in the way. One window for getting
+      // around.
       return (
         <Rotator
           locked={locked}
@@ -119,6 +145,8 @@ function SectionInner({
                 />
               ),
             },
+            { key: "transit", title: "TTC alerts", node: carousel(["transit"]) },
+            { key: "traffic", title: "Traffic", node: carousel(["traffic"]) },
           ]}
         />
       );
@@ -146,28 +174,7 @@ function SectionInner({
       // configured pages, or pinned to the single page this slot names.
       const pinned: PanelId | undefined = PANEL_SECTIONS[id];
       const panels: PanelId[] = pinned ? [pinned] : cfg.panels;
-      return (
-        <CyclePanel
-          panels={panels}
-          dwellMs={cfg.panelDwellMs}
-          locked={locked}
-          now={now}
-          tech={state.tech}
-          crime={state.crime}
-          traffic={state.traffic}
-          transit={state.transit}
-          transitPlaces={cfg.transitPlaces}
-          fights={state.fights}
-          events={state.events}
-          market={state.market ?? []}
-          sellers={state.sellers ?? { items: [], tracking: false }}
-          ideas={state.ideas ?? { models: [], trends: [] }}
-          print3d={state.print3d ?? []}
-          leads={state.leads ?? []}
-          marketLabels={Object.fromEntries(cfg.market.searches.map((s) => [s.id, s.label]))}
-          printer={{ configured: Boolean(cfg.printer.host && cfg.printer.serial), label: cfg.printer.label }}
-        />
-      );
+      return carousel(panels);
     }
   }
 }

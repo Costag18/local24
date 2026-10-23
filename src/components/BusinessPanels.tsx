@@ -58,11 +58,19 @@ export function IdeasPanel({ ideas, now }: { ideas: AppState["ideas"]; now: numb
         )) : <Empty text="Nothing big on the calendar in the next ten weeks." />}
       </Section>
 
-      <Section title="Trending this week" note="Printables, by likes in 7 days">
+      <Section title="Trending this week" note="Printables · ✓ CAN SELL = the designer allows selling prints of it">
         {models.length ? (
           <div className="biz-grid">
             {models.map((m) => (
-              <a key={m.id} href={m.url} target="_blank" rel="noreferrer" className="biz-card row-link" title={`${m.name} · ${m.license || "no licence listed"}`}>
+              <a
+                key={m.id}
+                href={m.url}
+                target="_blank"
+                rel="noreferrer"
+                className="biz-card row-link"
+                title={`${m.name}
+Licence: ${m.license || "none listed"} — ${m.sellable ? "you may sell prints of this" : "print it for yourself, but don't sell it"}`}
+              >
                 {m.image ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={m.image} alt="" loading="lazy" referrerPolicy="no-referrer" className="biz-thumb" />
@@ -71,7 +79,7 @@ export function IdeasPanel({ ideas, now }: { ideas: AppState["ideas"]; now: numb
                 <span className="flex items-center gap-2" style={{ minWidth: 0 }}>
                   <span className="label num">♥ {m.likes.toLocaleString()}</span>
                   <span className="tag" style={{ color: m.sellable ? "var(--ok)" : "var(--ink-faint)" }}>
-                    {m.sellable ? "OK TO SELL" : "PERSONAL USE"}
+                    {m.sellable ? "✓ CAN SELL" : "PERSONAL ONLY"}
                   </span>
                 </span>
               </a>
@@ -152,7 +160,7 @@ const PLACE_TAG: Record<string, { text: string; color: string }> = {
 
 /**
  * People asking for something to be printed: nearby marketplace posts and
- * Reddit requests. Anything local comes first: those are customers.
+ * Canadian Reddit requests. Toronto first, then Ontario, then Canada.
  */
 export function LeadsPanel({ leads, listings, now, cols }: { leads: Item[]; listings: Listing[]; now: number; cols: number }) {
   const rank = { toronto: 0, ontario: 1, canada: 2, elsewhere: 3 } as const;
@@ -166,9 +174,12 @@ export function LeadsPanel({ leads, listings, now, cols }: { leads: Item[]; list
       key: it.id, title: it.title, url: it.link, at: it.published,
       place: (String(it.meta?.place ?? requestPlace(it.title)) as keyof typeof rank), source: "REDDIT",
     })),
-  ].sort((a, b) => (rank[a.place] ?? 3) - (rank[b.place] ?? 3) || b.at - a.at);
+  ]
+    // Only requests someone here could actually take on.
+    .filter((r) => r.place !== "elsewhere")
+    .sort((a, b) => (rank[a.place] ?? 3) - (rank[b.place] ?? 3) || b.at - a.at);
 
-  if (!rows.length) return <Empty text="No print requests right now." />;
+  if (!rows.length) return <Empty text="No print requests from Toronto or elsewhere in Canada right now." />;
   return (
     <div className="cp-list" data-cols={cols} style={{ "--cols": cols } as React.CSSProperties}>
       {rows.slice(0, 25).map((r) => {

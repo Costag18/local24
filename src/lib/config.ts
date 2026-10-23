@@ -102,7 +102,8 @@ export const DEFAULT_CONFIG: AppConfig = {
 
   // Radar rotates with the weather and the printer with the home camera,
   // so neither needs a page here.
-  panels: ["fights", "tech", "events", "market", "ideas", "sellers", "leads", "print3d", "traffic", "transit", "crime"],
+  // TTC and traffic alerts rotate with the bus map instead (SectionHost).
+  panels: ["fights", "tech", "events", "market", "ideas", "sellers", "leads", "print3d", "crime"],
   panelDwellMs: 30_000,
   camBandDwellMs: 10000,
   videoCamDwellMs: 20000,
