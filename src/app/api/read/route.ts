@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { BROWSER_UA } from "@/lib/http";
 import { extractArticle, isPublicUrl, type Article } from "@/lib/reader";
-import { printablesArticle } from "@/lib/printablesReader";
+import { printablesArticle, printablesTarget } from "@/lib/printablesReader";
 
 export const dynamic = "force-dynamic";
 
@@ -59,18 +59,46 @@ async function fetchPage(start: string): Promise<{ html: string; url: string } |
   return { error: "Too many redirects." };
 }
 
+const MAX_CACHED = 60;
+
+/**
+ * Keeps a page for a while, never more than MAX_CACHED of them: expired ones
+ * go first, then the oldest. Every path into the cache goes through here, so
+ * a stream of distinct links cannot grow it without limit.
+ */
+function remember(key: string, article: Article): void {
+  const now = Date.now();
+  for (const [k, v] of cache) if (now - v.at >= TTL_MS) cache.delete(k);
+  cache.delete(key); // re-inserting moves it to the newest end
+  cache.set(key, { at: now, article });
+  while (cache.size > MAX_CACHED) cache.delete(cache.keys().next().value as string);
+}
+
+/**
+ * The cache key for a link. A Printables model or search is keyed on what it
+ * names (the id, the words), so the same page reached by differently spelled
+ * links is one entry, not many.
+ */
+function cacheKey(url: string): string {
+  const t = printablesTarget(url);
+  if (t?.kind === "model") return `printables:model:${t.id}`;
+  if (t?.kind === "search") return `printables:search:${t.q.toLowerCase().replace(/\s+/g, " ")}`;
+  return url;
+}
+
 /** The readable version of one link, for the in-dashboard reader. */
 export async function GET(req: Request) {
   const url = new URL(req.url).searchParams.get("url") ?? "";
   if (!isPublicUrl(url)) return NextResponse.json({ error: "That link is not a public web page." }, { status: 400 });
 
-  const hit = cache.get(url);
+  const key = cacheKey(url);
+  const hit = cache.get(key);
   if (hit && Date.now() - hit.at < TTL_MS) return NextResponse.json(hit.article);
 
   // Printables' pages are behind a bot check; its API is not.
   const fromApi = await printablesArticle(url);
   if (fromApi) {
-    cache.set(url, { at: Date.now(), article: fromApi });
+    remember(key, fromApi);
     return NextResponse.json(fromApi);
   }
 
@@ -78,7 +106,6 @@ export async function GET(req: Request) {
   if ("error" in page) return NextResponse.json({ error: page.error }, { status: 502 });
   const article = extractArticle(page.html, page.url);
 
-  cache.set(url, { at: Date.now(), article });
-  if (cache.size > 60) cache.delete(cache.keys().next().value as string);
+  remember(key, article);
   return NextResponse.json(article);
 }
